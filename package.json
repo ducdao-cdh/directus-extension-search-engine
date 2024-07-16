@@ -1,0 +1,60 @@
+{
+	"name": "directus-extension-search-engine",
+	"description": "Please enter a description for your extension",
+	"icon": "extension",
+	"version": "1.0.0",
+	"keywords": [
+		"directus",
+		"directus-extension",
+		"directus-extension-bundle"
+	],
+	"type": "commonjs",
+	"files": [
+		"dist"
+	],
+	"directus:extension": {
+		"type": "bundle",
+		"path": {
+			"app": "../../build-dist/directus-extension-search-engine/dist/app.js",
+			"api": "../../build-dist/directus-extension-search-engine/dist/api.js"
+		},
+		"entries": [
+			{
+				"type": "hook",
+				"name": "sync",
+				"source": "src/extensions/sync/index.ts"
+			},
+			{
+				"type": "endpoint",
+				"name": "search",
+				"source": "src/extensions/search/index.ts"
+			},
+			{
+				"type": "hook",
+				"name": "initial",
+				"source": "src/extensions/initial/index.ts"
+			}
+		],
+		"host": "^10.10.0"
+	},
+	"scripts": {
+		"build": "directus-extension build",
+		"dev": "directus-extension build -w --no-minify",
+		"link": "directus-extension link",
+		"add": "directus-extension add"
+	},
+	"devDependencies": {
+		"@directus/extensions-sdk": "11.0.6",
+		"@types/node": "^20.14.9",
+		"typescript": "^5.5.3"
+	},
+	"dependencies": {
+		"@directus/errors": "^0.3.3",
+		"@keyv/redis": "^2.8.5",
+		"isolated-vm": "^5.0.1",
+		"keyv": "^4.5.4",
+		"lodash-es": "^4.17.21",
+		"title-case": "^4.3.1",
+		"typesense": "^1.8.2"
+	}
+}
