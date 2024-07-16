@@ -15,8 +15,8 @@
 	"directus:extension": {
 		"type": "bundle",
 		"path": {
-			"app": "../../build-dist/directus-extension-search-engine/dist/app.js",
-			"api": "../../build-dist/directus-extension-search-engine/dist/api.js"
+			"app": "dist/app.js",
+			"api": "dist/api.js"
 		},
 		"entries": [
 			{
