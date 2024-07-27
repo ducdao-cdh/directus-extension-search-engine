@@ -57,8 +57,8 @@ The above data will be put into `Function Parse` with the variable `data` and pr
 **Body**
 ```json
 {
-  q : "stark",
-  query_by : "title"
+  "q" : "stark",
+  "query_by" : "title"
 }
 
 ```
@@ -75,7 +75,7 @@ The above data will be put into `Function Parse` with the variable `data` and pr
 **Query params**
 ```json
 {
-    query_by: "name",
+    "query_by": "name",
 }
 ```
 > **Note:** query params will be used as `commonSearchParams` in `typesence`
@@ -85,10 +85,9 @@ The above data will be put into `Function Parse` with the variable `data` and pr
 **Body**
 ```json
 {
-  q : "stark",
-  query_by : "title"
+  "q" : "stark",
+  "query_by" : "title"
 }
-
 ```
 > **Note:** this body will be used as `searchRequests ` in `typesence`
 (https://typesense.org/docs/0.25.2/api/federated-multi-search.html#multi-search-parameters)
@@ -111,9 +110,8 @@ The above data will be put into `Function Parse` with the variable `data` and pr
 **Body**
 ```json
 {
-  collections: ['news']
+  "collections": ["news"]
 }
-
 ```
 
 > **Note:** If `collections` does not receive a value or the value is incorrect, collections will be assigned all configured values.
@@ -127,7 +125,6 @@ The above data will be put into `Function Parse` with the variable `data` and pr
 **Body**
 ```json
 {
-  collections: ['news']
+  "collections": ["news"]
 }
-
 ```
