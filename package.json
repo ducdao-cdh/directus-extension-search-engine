@@ -16,9 +16,10 @@
 		"index-data"
 	],
 	"type": "commonjs",
-	"files": [
-		"dist"
-	],
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/ducdao-cdh/directus-extension-search-engine"
+	},
 	"directus:extension": {
 		"type": "bundle",
 		"path": {
