@@ -1,6 +1,7 @@
 import { TypeContextConstructor, TypeEventsConstructor } from "../types/base.type"
-import { COLLECTION_CONFIG } from '../data'
+import { COLLECTION_CONFIG, EXTENSION_NAME } from '../data'
 import { titleCase } from "title-case"
+import { info } from "console"
 
 export class BaseService {
     public events: any
@@ -21,6 +22,7 @@ export class BaseService {
 
     public STATUS_PUBLISH = "published"
     private COLLECTION_CONFIG = COLLECTION_CONFIG
+    public log
 
     constructor(params: { events?: TypeEventsConstructor, context: TypeContextConstructor, redis?: any }) {
         this.events = params?.events
@@ -38,6 +40,12 @@ export class BaseService {
         this.action = this.events?.action
         this.schedule = this.events?.schedule
         this.init = this.events?.init
+
+        this.log = {
+            error: (message: any) => this.logger.error({ name: EXTENSION_NAME }, message),
+            debug: (message: any) => this.logger.debug({ name: EXTENSION_NAME }, message),
+            info: (message: any) => this.logger.info({ name: EXTENSION_NAME }, message)
+        }
 
     }
 

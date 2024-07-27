@@ -4,6 +4,8 @@ import { BaseService } from "../services/base.service"
 import { TypeContextConstructor } from "../types/base.type"
 import { asyncHandler } from "../utils"
 import { typeMiddleware } from "../middlewares/type.middleware"
+import { MultiSearchRequestSchema, MultiSearchRequestsSchema } from "typesense/lib/Typesense/MultiSearch"
+import { SearchParams } from "typesense/lib/Typesense/Documents"
 
 
 export class SearchControllerClass extends BaseService {
@@ -20,9 +22,13 @@ export class SearchControllerClass extends BaseService {
             asyncHandler(async (req: any, res: any, next: any) => {
 
                 let { collection } = req.params
-                let searchParameters = req.body
+                let searchParameters = req.body as SearchParams
 
-                let data = await this.emitter.emitFilter("TYPESENCE_SEARCH_COLLECTION", { collection, searchParameters })
+                let { data, errors } = await this.emitter.emitFilter("TYPESENCE_SEARCH_COLLECTION", { collection, searchParameters })
+                if (errors) {
+                    return next(errors)
+                }
+
                 return res.status(201).json(data)
             }))
 
@@ -31,10 +37,13 @@ export class SearchControllerClass extends BaseService {
             accessMiddleware(['user'], context),
             asyncHandler(async (req: any, res: any, next: any) => {
 
-                let commonSearchParams = req.query
-                let searchRequests = req.body
+                let commonSearchParams = req.query as Partial<MultiSearchRequestSchema>
+                let searchRequests = req.body as MultiSearchRequestsSchema
 
-                let data = await this.emitter.emitFilter("TYPESENCE_MULTI_SEARCH", { searchRequests, commonSearchParams })
+                let { data, errors } = await this.emitter.emitFilter("TYPESENCE_MULTI_SEARCH", { searchRequests, commonSearchParams })
+                if (errors) {
+                    return next(errors)
+                }
                 return res.status(201).json(data)
             }))
 
@@ -89,12 +98,12 @@ export class SearchControllerClass extends BaseService {
             }))
 
 
-        this.router.post("/elasticsearch",
-            typeMiddleware(context),
-            accessMiddleware(['user'], context),
-            asyncHandler(async (req: any, res: any, next: any) => {
+        // this.router.post("/elasticsearch",
+        //     typeMiddleware(context),
+        //     accessMiddleware(['user'], context),
+        //     asyncHandler(async (req: any, res: any, next: any) => {
 
-                return res.status(200).json({ data: 111 })
-            }))
+        //         return res.status(200).json({ data: 111 })
+        //     }))
     }
 }

@@ -3,6 +3,8 @@ import { escapeHtml, execCode } from "../utils"
 import { BaseService } from "./base.service"
 import { EXTENSION_NAME } from "../data"
 import { SearchParams } from "typesense/lib/Typesense/Documents"
+import { MultiSearchRequestSchema, MultiSearchRequestsSchema } from "typesense/lib/Typesense/MultiSearch"
+import { ServiceUnavailableError } from "@directus/errors"
 
 export class TypesenseClass extends BaseService {
 
@@ -44,12 +46,12 @@ export class TypesenseClass extends BaseService {
             if (schemas.length > 0) {
                 return Promise.all(schemas.map(async (item: any) => this.client.collections().create(item.schema)))
             } else {
-                this.logger.debug({ name: EXTENSION_NAME }, "[!] Initial schema existed")
+                this.log.debug("[!] Initial schema existed")
             }
 
         } catch (error) {
-            this.logger.debug({ name: EXTENSION_NAME }, "[-] Error initCollections")
-            this.logger.debug({ name: EXTENSION_NAME }, error)
+            this.log.debug("[-] Error initCollections")
+            this.log.debug(error)
         }
     }
 
@@ -68,8 +70,8 @@ export class TypesenseClass extends BaseService {
 
 
         } catch (error) {
-            this.logger.debug({ name: EXTENSION_NAME }, "[-] Error actionIndexAllData")
-            this.logger.debug({ name: EXTENSION_NAME }, error)
+            this.log.debug("[-] Error actionIndexAllData")
+            this.log.debug(error)
         }
     }
 
@@ -86,8 +88,8 @@ export class TypesenseClass extends BaseService {
 
 
         } catch (error) {
-            this.logger.error({ name: EXTENSION_NAME }, `[!] Error getDataCollection: ${collection} -> ${JSON.stringify(query)}`)
-            this.logger.debug({ name: EXTENSION_NAME }, error)
+            this.log.error(`[!] Error getDataCollection: ${collection} -> ${JSON.stringify(query)}`)
+            this.log.debug(error)
         }
     }
 
@@ -114,43 +116,68 @@ export class TypesenseClass extends BaseService {
                 // this.logger.debug({ function_parse, data })
 
                 let dataParse: any = await execCode(this.context, function_parse, data).catch((e: any) => {
-                    this.logger.error({ name: EXTENSION_NAME }, e)
+                    this.log.error(e)
                     return []
                 })
 
-                // this.logger.debug({ name: EXTENSION_NAME }, { dataParse })
+                // this.log.debug( { dataParse })
 
 
                 if (!dataParse?.length) continue
 
-                this.logger.debug({ name: EXTENSION_NAME }, `[+] Indexing data collection: ${schema.name} (${dataParse.length})`)
+                this.log.debug(`[+] Indexing data collection: ${schema.name} (${dataParse.length})`)
 
                 let index = 0
                 for (let record of dataParse) {
                     await this.client.collections(schema.name).documents().upsert(record)
-                    this.logger.debug({ name: EXTENSION_NAME }, `[-] Indexed -> ${++index}/${dataParse.length}`)
+                    this.log.debug(`[-] Indexed -> ${++index}/${dataParse.length}`)
                 }
 
-                this.logger.debug({ name: EXTENSION_NAME }, `[-->] Indexed data collection: ${schema.name}`)
-
+                this.log.debug(`[-->] Indexed data collection: ${schema.name}`)
             }
 
         } catch (error) {
-            this.logger.error({ name: EXTENSION_NAME }, "[!] Error actionIndexData")
+            this.log.error("[!] Error actionIndexData")
             console.log(error)
         }
 
     }
 
-    async actionMultiSearch(searchRequests: any, commonSearchParams?: any) {
-        let data = await this.searchClient.multiSearch.perform(searchRequests, commonSearchParams)
-        return data
+    async actionMultiSearch(searchRequests: MultiSearchRequestsSchema, commonSearchParams?: Partial<MultiSearchRequestSchema>) {
+
+
+        try {
+            let data = await this.searchClient.multiSearch.perform(searchRequests, commonSearchParams)
+            return { data }
+        } catch (error: any) {
+            this.log.error("Error actionMultiSearch")
+            console.log(error)
+            return {
+                errors: [new ServiceUnavailableError({
+                    service: EXTENSION_NAME + "(Multi-search)",
+                    reason: error?.message
+                })]
+            }
+
+        }
     }
 
 
     async actionSearchCollection(collection: string, searchParameters: SearchParams) {
-        //@ts-ignore
-        return this.searchClient.collections(collection).documents().search(searchParameters)
+        try {
+            //@ts-ignore
+            let data = await this.searchClient.collections(collection).documents().search(searchParameters)
+            return { data }
+        } catch (error: any) {
+            this.log.error("Error actionSearchCollection")
+            console.log(error)
+            return {
+                errors: [new ServiceUnavailableError({
+                    service: EXTENSION_NAME + "(Search collection)",
+                    reason: JSON.stringify(error?.message)
+                })]
+            }
+        }
     }
 
     async actionDropCollections(collections: string[]) {
@@ -161,7 +188,8 @@ export class TypesenseClass extends BaseService {
                 try {
                     await this.client.collections(collection).delete()
                 } catch (error: any) {
-                    this.logger.error(error.message)
+                    this.log.error("Error actionDropCollections")
+                    this.logger.error(error?.message)
                 }
             }
         }
