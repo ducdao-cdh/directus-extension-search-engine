@@ -1,5 +1,5 @@
 {
-	"name": "directus-extension-search-engine",
+	"name": "directus-search-engine",
 	"description": "search engine",
 	"author": "DucDao",
 	"icon": "extension",
