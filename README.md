@@ -20,7 +20,7 @@ TYPESENSE_API_KEY="112233"
 
 **Install**
 ```bash
-npm i directus-search-engine
+npm i directus-extension-search-engine
 ```
 
 <img src="docs/configs.png" width="500" height="500" />

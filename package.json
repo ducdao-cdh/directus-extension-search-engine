@@ -3,7 +3,7 @@
 	"description": "search engine",
 	"author": "DucDao",
 	"icon": "extension",
-	"version": "0.0.1-beta",
+	"version": "0.0.2-beta",
 	"keywords": [
 		"directus",
 		"directus-extension",
