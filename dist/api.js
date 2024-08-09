@@ -45106,7 +45106,7 @@ class ActionEventClass extends BaseService {
     this.action("items.delete", async (meta) => triggerIndex(meta));
     const triggerIndex = async (meta) => {
       let { collection } = meta;
-      let typesEngine = context.env["SEARCH_ENGINE_TYPES"];
+      let typesEngine = context.env["SEARCH_ENGINE_TYPES"] || [];
       for (let type of typesEngine) {
         switch (type) {
           case "typesence":

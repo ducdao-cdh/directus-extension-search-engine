@@ -16,7 +16,7 @@ export class ActionEventClass extends BaseService {
         const triggerIndex = async (meta: any) => {
             let { collection } = meta
 
-            let typesEngine = context.env['SEARCH_ENGINE_TYPES']
+            let typesEngine = context.env['SEARCH_ENGINE_TYPES'] || []
 
             for (let type of typesEngine) {
                 switch (type) {
