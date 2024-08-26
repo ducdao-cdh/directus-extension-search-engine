@@ -1,5 +1,5 @@
 {
-	"name": "directus-extension-search-engine",
+	"name": "search-engine",
 	"description": "search engine",
 	"author": "DucDao",
 	"icon": "extension",
@@ -10,8 +10,8 @@
 		"directus-extension-bundle",
 		"search",
 		"search-engine",
-		"search-typesence",
-		"typesence",
+		"search-typesense",
+		"typesense",
 		"data-indexing",
 		"index-data"
 	],
@@ -59,7 +59,7 @@
 	"dependencies": {
 		"@directus/errors": "^0.3.3",
 		"@keyv/redis": "^2.8.5",
-		"isolated-vm": "^5.0.1",
+		"isolated-vm": "^4.7.2",
 		"lodash-es": "^4.17.21",
 		"title-case": "^4.3.1",
 		"typesense": "^1.8.2"

@@ -30850,6 +30850,8 @@ function requireBrowser () {
 				return false;
 			}
 
+			let m;
+
 			// Is webkit? http://stackoverflow.com/a/16459606/376773
 			// document is undefined in react-native: https://github.com/facebook/react-native/pull/1632
 			return (typeof document !== 'undefined' && document.documentElement && document.documentElement.style && document.documentElement.style.WebkitAppearance) ||
@@ -30857,7 +30859,7 @@ function requireBrowser () {
 				(typeof window !== 'undefined' && window.console && (window.console.firebug || (window.console.exception && window.console.table))) ||
 				// Is firefox >= v31?
 				// https://developer.mozilla.org/en-US/docs/Tools/Web_Console#Styling_messages
-				(typeof navigator !== 'undefined' && navigator.userAgent && navigator.userAgent.toLowerCase().match(/firefox\/(\d+)/) && parseInt(RegExp.$1, 10) >= 31) ||
+				(typeof navigator !== 'undefined' && navigator.userAgent && (m = navigator.userAgent.toLowerCase().match(/firefox\/(\d+)/)) && parseInt(m[1], 10) >= 31) ||
 				// Double check webkit in userAgent just in case we are in a worker
 				(typeof navigator !== 'undefined' && navigator.userAgent && navigator.userAgent.toLowerCase().match(/applewebkit\/(\d+)/));
 		}
@@ -36480,143 +36482,8 @@ function defineEndpoint(config) {
 }
 
 const COLLECTION_CONFIG = "search_engine_configs";
+const COLLECTION_TYPESENSE_SCHEMA = "search_engine_typesense_schema";
 const EXTENSION_NAME = "Extension Search Engine";
-
-const TOKENS = /(\S+)|(.)/g;
-const IS_SPECIAL_CASE = /[\.#]\p{Alphabetic}/u; // #tag, example.com, etc.
-const IS_MANUAL_CASE = /\p{Ll}(?=[\p{Lu}])/u; // iPhone, iOS, etc.
-const ALPHANUMERIC_PATTERN = /\p{Alphabetic}+/gu;
-const IS_ACRONYM = /^(\P{Alphabetic})*(?:\p{Alphabetic}\.){2,}(\P{Alphabetic})*$/u;
-const WORD_SEPARATORS = new Set(["—", "–", "-", "―", "/"]);
-const SENTENCE_TERMINATORS = new Set([".", "!", "?"]);
-const TITLE_TERMINATORS = new Set([
-    ...SENTENCE_TERMINATORS,
-    ":",
-    '"',
-    "'",
-    "”",
-]);
-const SMALL_WORDS = new Set([
-    "a",
-    "an",
-    "and",
-    "as",
-    "at",
-    "because",
-    "but",
-    "by",
-    "en",
-    "for",
-    "if",
-    "in",
-    "neither",
-    "nor",
-    "of",
-    "on",
-    "only",
-    "or",
-    "over",
-    "per",
-    "so",
-    "some",
-    "than",
-    "that",
-    "the",
-    "to",
-    "up",
-    "upon",
-    "v",
-    "versus",
-    "via",
-    "vs",
-    "when",
-    "with",
-    "without",
-    "yet",
-]);
-function titleCase(input, options = {}) {
-    const { locale = undefined, sentenceCase = false, sentenceTerminators = SENTENCE_TERMINATORS, titleTerminators = TITLE_TERMINATORS, smallWords = SMALL_WORDS, wordSeparators = WORD_SEPARATORS, } = typeof options === "string" || Array.isArray(options)
-        ? { locale: options }
-        : options;
-    const terminators = sentenceCase ? sentenceTerminators : titleTerminators;
-    let result = "";
-    let isNewSentence = true;
-    // tslint:disable-next-line
-    for (const m of input.matchAll(TOKENS)) {
-        const { 1: token, 2: whiteSpace, index = 0 } = m;
-        if (whiteSpace) {
-            result += whiteSpace;
-            continue;
-        }
-        // Ignore URLs, email addresses, acronyms, etc.
-        if (IS_SPECIAL_CASE.test(token)) {
-            const acronym = token.match(IS_ACRONYM);
-            // The period at the end of an acronym is not a new sentence,
-            // but we should uppercase first for i.e., e.g., etc.
-            if (acronym) {
-                const [_, prefix = "", suffix = ""] = acronym;
-                result +=
-                    sentenceCase && !isNewSentence
-                        ? token
-                        : upperAt(token, prefix.length, locale);
-                isNewSentence = terminators.has(suffix.charAt(0));
-                continue;
-            }
-            result += token;
-            isNewSentence = terminators.has(token.charAt(token.length - 1));
-        }
-        else {
-            const matches = Array.from(token.matchAll(ALPHANUMERIC_PATTERN));
-            let value = token;
-            let isSentenceEnd = false;
-            for (let i = 0; i < matches.length; i++) {
-                const { 0: word, index: wordIndex = 0 } = matches[i];
-                const nextChar = token.charAt(wordIndex + word.length);
-                isSentenceEnd = terminators.has(nextChar);
-                // Always the capitalize first word and reset "new sentence".
-                if (isNewSentence) {
-                    isNewSentence = false;
-                }
-                // Skip capitalizing all words if sentence case is enabled.
-                else if (sentenceCase || IS_MANUAL_CASE.test(word)) {
-                    continue;
-                }
-                // Handle simple words.
-                else if (matches.length === 1) {
-                    // Avoid capitalizing small words, except at the end of a sentence.
-                    if (smallWords.has(word)) {
-                        const isFinalToken = index + token.length === input.length;
-                        if (!isFinalToken && !isSentenceEnd) {
-                            continue;
-                        }
-                    }
-                }
-                // Multi-word tokens need to be parsed differently.
-                else if (i > 0) {
-                    // Avoid capitalizing words without a valid word separator,
-                    // e.g. "apple's" or "test(ing)".
-                    if (!wordSeparators.has(token.charAt(wordIndex - 1))) {
-                        continue;
-                    }
-                    // Ignore small words in the middle of hyphenated words.
-                    if (smallWords.has(word) && wordSeparators.has(nextChar)) {
-                        continue;
-                    }
-                }
-                value = upperAt(value, wordIndex, locale);
-            }
-            result += value;
-            isNewSentence =
-                isSentenceEnd || terminators.has(token.charAt(token.length - 1));
-        }
-    }
-    return result;
-}
-function upperAt(input, index, locale) {
-    return (input.slice(0, index) +
-        input.charAt(index).toLocaleUpperCase(locale) +
-        input.slice(index + 1));
-}
 
 class BaseService {
   constructor(params) {
@@ -36652,29 +36519,28 @@ class BaseService {
     let configService = new this.services.ItemsService(this.COLLECTION_CONFIG, { schema });
     return configService.upsertSingleton(data, { emitEvents: false });
   }
-  async injectOptions() {
-    let types = this.env["SEARCH_ENGINE_TYPES"];
-    types = typeof types === "string" ? [types] : types;
-    if (!(types == null ? void 0 : types.length))
-      return;
-    types = types.map((item) => ({
-      text: titleCase(item),
-      value: item
-    }));
-    let fieldService = new this.services.FieldsService({ schema: await this.getSchema() });
-    await fieldService.updateField(COLLECTION_CONFIG, {
-      field: "engine_types",
-      meta: {
-        options: {
-          choices: types
-        },
-        display: "labels",
-        display_options: {
-          choices: types
-        }
-      }
-    });
-  }
+  // async injectOptions() {
+  //     let types = this.env['SEARCH_ENGINE_TYPES']
+  //     types = typeof types === 'string' ? [types] : types
+  //     if (!types?.length) return
+  //     types = types.map((item: string) => ({
+  //         text: titleCase(item),
+  //         value: item
+  //     }))
+  //     let fieldService = new this.services.FieldsService({ schema: await this.getSchema() })
+  //     await fieldService.updateField(COLLECTION_CONFIG, {
+  //         field: "engine_types",
+  //         meta: {
+  //             options: {
+  //                 choices: types
+  //             },
+  //             display: "labels",
+  //             display_options: {
+  //                 choices: types
+  //             }
+  //         }
+  //     })
+  // }
 }
 
 var Typesense = {};
@@ -44943,17 +44809,48 @@ class TypesenseClass extends BaseService {
       nodes: this.env["TYPESENSE_API_URLS"],
       apiKey: this.env.TYPESENSE_API_KEY
     });
-    this.dataIndex = this.env.TYPESENCE_INDEXING;
+    this.dataIndex = this.env.TYPESENSE_INDEXING;
   }
-  async initCollectionSchema() {
+  async getSchemaIndex() {
+    let schema = await this.getSchema();
+    let service = new this.services.ItemsService(COLLECTION_TYPESENSE_SCHEMA, { schema });
+    return service.readByQuery({
+      filter: {
+        status: {
+          _eq: "published"
+        }
+      },
+      fields: ["*"],
+      sort: ["sort", "id"],
+      limit: -1
+    });
+  }
+  async initCollectionSchema(payload) {
     try {
-      let collections = await this.client.collections().retrieve();
-      let schemas = this.dataIndex.filter((item) => !collections.some((ite) => ite.name === item.schema.name));
-      if (schemas.length > 0) {
-        return Promise.all(schemas.map(async (item) => this.client.collections().create(item.schema)));
-      } else {
-        this.log.debug("[!] Initial schema existed");
+      let [collections, dataIndex] = await Promise.all([
+        this.client.collections().retrieve(),
+        this.getSchemaIndex()
+      ]);
+      if (payload.schemas) {
+        dataIndex = dataIndex.filter((item) => payload.schemas.includes(item.schema_name));
       }
+      if (payload.collections) {
+        dataIndex = dataIndex.filter((item) => payload.collections.includes(item.collection));
+      }
+      dataIndex = dataIndex.filter((item) => !collections.some((ite) => ite.name === item.schema_name));
+      for (let item of dataIndex) {
+        try {
+          await this.client.collections().create({
+            ...item.schema,
+            name: item.schema_name
+          });
+        } catch (error) {
+          this.log.debug(`[!] Schema "${item.schema_name}" existed`);
+          this.log.error("Error initCollectionSchema: " + (error == null ? void 0 : error.message));
+          this.log.debug(error);
+        }
+      }
+      this.log.debug("[!] Initial schema success !");
     } catch (error) {
       this.log.debug("[-] Error initCollections");
       this.log.debug(error);
@@ -44961,15 +44858,13 @@ class TypesenseClass extends BaseService {
   }
   async actionRefreshIndexData() {
     try {
-      let schemas = this.dataIndex.map((item) => {
-        var _a;
-        return (_a = item.schema) == null ? void 0 : _a.name;
-      });
+      let dataIndex = await this.getSchemaIndex();
+      let schemas = dataIndex.map((item) => item.schema_name);
       if (!(schemas == null ? void 0 : schemas.length))
         return;
-      let collections = Array.from(new Set(this.dataIndex.map((item) => item.collection)));
+      let collections = Array.from(new Set(dataIndex.map((item) => item.collection)));
       await this.actionDropCollections(schemas);
-      await this.actionIndexData(collections);
+      await this.actionIndexDataCollection(collections);
     } catch (error) {
       this.log.debug("[-] Error actionIndexAllData");
       this.log.debug(error);
@@ -44988,14 +44883,40 @@ class TypesenseClass extends BaseService {
       this.log.debug(error);
     }
   }
-  async actionIndexData(collections) {
+  async actionIndexDataCollection(collections) {
     try {
+      let dataIndex = await this.getSchemaIndex();
       if (collections) {
-        this.dataIndex = this.dataIndex.filter((item) => collections == null ? void 0 : collections.includes(item.collection));
+        dataIndex = dataIndex.filter((item) => collections == null ? void 0 : collections.includes(item.collection));
       }
-      await this.initCollectionSchema();
-      for (let item of this.dataIndex) {
-        let { collection, query, function_parse, schema } = item;
+      await this.initCollectionSchema({ collections });
+      return this.actionIndexing(dataIndex);
+    } catch (error) {
+      this.log.error("[!] Error actionIndexData");
+      console.log(error);
+    }
+  }
+  async actionIndexDataSchema(schemas) {
+    try {
+      this.logger.debug({ schemas });
+      let dataIndex = await this.getSchemaIndex();
+      if (schemas) {
+        dataIndex = dataIndex.filter((item) => schemas == null ? void 0 : schemas.includes(item.schema_name));
+      }
+      await this.initCollectionSchema(schemas);
+      return this.actionIndexing(dataIndex);
+    } catch (error) {
+      this.log.error("[!] Error actionIndexData");
+      console.log(error);
+    }
+  }
+  async actionIndexing(dataIndex) {
+    let schemaService = new this.services.ItemsService(COLLECTION_TYPESENSE_SCHEMA, {
+      schema: await this.getSchema()
+    });
+    for (let item of dataIndex) {
+      try {
+        let { id, collection, query, function_parse, schema, schema_name } = item;
         let data = await this.getDataCollection(collection, query);
         if (!(data == null ? void 0 : data.length))
           continue;
@@ -45005,17 +44926,26 @@ class TypesenseClass extends BaseService {
         });
         if (!(dataParse == null ? void 0 : dataParse.length))
           continue;
-        this.log.debug(`[+] Indexing data collection: ${schema.name} (${dataParse.length})`);
-        let index = 0;
-        for (let record of dataParse) {
-          await this.client.collections(schema.name).documents().upsert(record);
-          this.log.debug(`[-] Indexed -> ${++index}/${dataParse.length}`);
-        }
-        this.log.debug(`[-->] Indexed data collection: ${schema.name}`);
+        await schemaService.updateOne(id, {
+          data_indexed: dataParse
+        }, {
+          emitEvents: false
+        });
+        this.log.debug(`[!] Indexing data collection: ${schema_name} (${dataParse.length} items)`);
+        let dataIndexed = await this.client.collections(schema_name).documents().import(dataParse, { action: "upsert" });
+        let dataSuccess = dataIndexed.filter((ite) => ite.success === true).length;
+        let dataFailure = dataParse.length - dataSuccess;
+        this.log.debug(`[!] Success/Failure: ${dataSuccess}/${dataFailure} `);
+        this.log.debug(`[-->] Indexed data collection: ${schema_name}`);
+      } catch (error) {
+        this.log.error(`Error index schema "${item.schema_name}"`);
+        this.log.debug(error);
+        await schemaService.updateOne(item.id, {
+          data_indexed: error == null ? void 0 : error.message
+        }, {
+          emitEvents: false
+        });
       }
-    } catch (error) {
-      this.log.error("[!] Error actionIndexData");
-      console.log(error);
     }
   }
   async actionMultiSearch(searchRequests, commonSearchParams) {
@@ -45048,12 +44978,13 @@ class TypesenseClass extends BaseService {
       };
     }
   }
-  async actionDropCollections(collections) {
-    if (collections.length > 0) {
+  async actionDropCollections(schema) {
+    if ((schema == null ? void 0 : schema.length) > 0) {
       await this.searchClient.clearCache();
-      for (let collection of collections) {
+      for (let item of schema) {
         try {
-          await this.client.collections(collection).delete();
+          await this.client.collections(item).delete();
+          this.log.debug(`[!] Drop schema "${item}" success !`);
         } catch (error) {
           this.log.error("Error actionDropCollections");
           this.logger.error(error == null ? void 0 : error.message);
@@ -45067,23 +44998,31 @@ class EmitterEventClass extends BaseService {
   constructor(context) {
     super({ context });
     this.emitter = context.emitter;
-    this.emitter.onAction("TYPESENCE_INDEX_DATA", async (payload) => {
+    this.emitter.onAction("TYPESENSE_INDEX_DATA_SCHEMA", async (payload) => {
       let typesenseClass = new TypesenseClass(context);
-      return typesenseClass.actionIndexData(payload.collections);
+      return typesenseClass.actionIndexDataSchema(payload.schema);
     });
-    this.emitter.onAction("TYPESENCE_CLEAR_COLLECTIONS", async (payload) => {
+    this.emitter.onAction("TYPESENSE_INDEX_DATA_COLLECTION", async (payload) => {
       let typesenseClass = new TypesenseClass(context);
-      return typesenseClass.actionDropCollections(payload.collections);
+      return typesenseClass.actionIndexDataCollection(payload.collections);
     });
-    this.emitter.onFilter("TYPESENCE_MULTI_SEARCH", async (payload) => {
+    this.emitter.onAction("TYPESENSE_CLEAR_SCHEMA", async (payload) => {
+      let typesenseClass = new TypesenseClass(context);
+      return typesenseClass.actionDropCollections(payload.schema);
+    });
+    this.emitter.onFilter("TYPESENSE_CLEAR_SCHEMA", async (payload) => {
+      let typesenseClass = new TypesenseClass(context);
+      return typesenseClass.actionDropCollections(payload.schema);
+    });
+    this.emitter.onFilter("TYPESENSE_MULTI_SEARCH", async (payload) => {
       let typesenseClass = new TypesenseClass(context);
       return typesenseClass.actionMultiSearch(payload.searchRequests, payload.commonSearchParams);
     });
-    this.emitter.onFilter("TYPESENCE_SEARCH_COLLECTION", async (payload) => {
+    this.emitter.onFilter("TYPESENSE_SEARCH_COLLECTION", async (payload) => {
       let typesenseClass = new TypesenseClass(context);
       return typesenseClass.actionSearchCollection(payload.collection, payload.searchParameters);
     });
-    this.emitter.onAction("TYPESENCE_REFRESH_INDEX", async () => {
+    this.emitter.onAction("TYPESENSE_REFRESH_INDEX", async () => {
       let typesenseClass = new TypesenseClass(context);
       return typesenseClass.actionRefreshIndexData();
     });
@@ -45101,31 +45040,66 @@ class ActionEventClass extends BaseService {
   constructor(action, context) {
     super({ context });
     this.action = action;
-    this.action("items.create", async (meta) => triggerIndex(meta));
-    this.action("items.update", async (meta) => triggerIndex(meta));
-    this.action("items.delete", async (meta) => triggerIndex(meta));
-    const triggerIndex = async (meta) => {
-      let { collection } = meta;
-      let typesEngine = context.env["SEARCH_ENGINE_TYPES"] || [];
-      for (let type of typesEngine) {
-        switch (type) {
-          case "typesence":
-            let dataIndex = JSON.parse(context.env["TYPESENCE_INDEXING"]);
-            if (!dataIndex.some((item) => item.collection === collection))
-              return;
-            let typesenceService = new TypesenseClass(context);
-            await typesenceService.actionIndexData([collection]);
-            break;
-        }
-      }
-    };
+    this.action(COLLECTION_TYPESENSE_SCHEMA + ".items.create", async (meta) => this.actionCreateItem(meta));
+    this.action(COLLECTION_TYPESENSE_SCHEMA + ".items.update", async (meta) => this.actionUpdateItems(meta));
+    this.action("items.create", async (meta) => this.triggerIndexItems(meta));
+    this.action("items.update", async (meta) => this.triggerIndexItems(meta));
+    this.action("items.delete", async (meta) => this.triggerIndexItems(meta));
+  }
+  async actionCreateItem(meta) {
+    let { payload } = meta;
+    if (payload.status !== "published")
+      return;
+    return this.emitter.emitAction("TYPESENSE_INDEX_DATA_SCHEMA", { schema: [payload.schema_name] });
+  }
+  async actionUpdateItems(meta) {
+    let { payload } = meta;
+    let items = await this.database(COLLECTION_TYPESENSE_SCHEMA).select("schema_name").whereIn("id", meta.keys);
+    if (!(items == null ? void 0 : items.length))
+      return;
+    if (payload.status === "draft" || payload.status === "archived") {
+      return this.emitter.emitAction("TYPESENSE_CLEAR_SCHEMA", { schema: items.map((item) => item.schema_name) });
+    }
+    return this.emitter.emitAction("TYPESENSE_INDEX_DATA_SCHEMA", { schema: items.map((item) => item.schema_name) });
+  }
+  async triggerIndexItems(meta) {
+    let { collection } = meta;
+    let schema = await this.database(COLLECTION_TYPESENSE_SCHEMA).select("collection").where("status", this.STATUS_PUBLISH).where("collection", collection);
+    if (!schema.length)
+      return;
+    let collections = Array.from(new Set(schema.map((item) => item.collections)));
+    return this.emitter.emitAction("TYPESENSE_INDEX_DATA_COLLECTION", { collections });
   }
 }
 
-var e0 = defineHook(({ action, schedule }, context) => {
+class FilterEventClass extends BaseService {
+  constructor(filter, context) {
+    super({ context });
+    this.filter = filter;
+    this.filter(COLLECTION_TYPESENSE_SCHEMA + ".items.update", async (payload, meta, context2) => {
+      if (payload.schema_name) {
+        let items = await this.database(COLLECTION_TYPESENSE_SCHEMA).select("schema_name").whereIn("id", meta.keys);
+        if (!(items == null ? void 0 : items.length))
+          return;
+        await this.emitter.emitFilter("TYPESENSE_CLEAR_SCHEMA", { schema: items.map((item) => item.schema_name) });
+        return payload;
+      }
+    });
+    this.filter(COLLECTION_TYPESENSE_SCHEMA + ".items.delete", async (payload, meta, context2) => {
+      let items = await this.database(COLLECTION_TYPESENSE_SCHEMA).select("schema_name").whereIn("id", meta.keys);
+      if (!(items == null ? void 0 : items.length))
+        return;
+      this.emitter.emitAction("TYPESENSE_CLEAR_SCHEMA", { schema: items.map((item) => item.schema_name) });
+      return payload;
+    });
+  }
+}
+
+var e0 = defineHook(({ action, schedule, filter }, context) => {
   new EmitterEventClass(context);
   new ScheduleEventClass(schedule, context);
   new ActionEventClass(action, context);
+  new FilterEventClass(filter, context);
 });
 
 function accessMiddleware(roles = ["user"], context) {
@@ -45179,13 +45153,13 @@ class SearchControllerClass extends BaseService {
     super({ context });
     this.router = router;
     this.router.post(
-      "/typesence/search-collection/:collection",
+      "/typesense/search-collection/:collection",
       typeMiddleware(context),
       accessMiddleware(["user"]),
       asyncHandler(async (req, res, next) => {
         let { collection } = req.params;
         let searchParameters = req.body;
-        let { data, errors } = await this.emitter.emitFilter("TYPESENCE_SEARCH_COLLECTION", { collection, searchParameters });
+        let { data, errors } = await this.emitter.emitFilter("TYPESENSE_SEARCH_COLLECTION", { collection, searchParameters });
         if (errors) {
           return next(errors);
         }
@@ -45193,13 +45167,13 @@ class SearchControllerClass extends BaseService {
       })
     );
     this.router.post(
-      "/typesence/multi-search",
+      "/typesense/multi-search",
       typeMiddleware(context),
       accessMiddleware(["user"]),
       asyncHandler(async (req, res, next) => {
         let commonSearchParams = req.query;
         let searchRequests = req.body;
-        let { data, errors } = await this.emitter.emitFilter("TYPESENCE_MULTI_SEARCH", { searchRequests, commonSearchParams });
+        let { data, errors } = await this.emitter.emitFilter("TYPESENSE_MULTI_SEARCH", { searchRequests, commonSearchParams });
         if (errors) {
           return next(errors);
         }
@@ -45207,45 +45181,45 @@ class SearchControllerClass extends BaseService {
       })
     );
     this.router.post(
-      "/typesence/refresh-index",
+      "/typesense/refresh-index",
       typeMiddleware(context),
       accessMiddleware(["admin"]),
       asyncHandler(async (req, res, next) => {
-        this.emitter.emitAction("TYPESENCE_REFRESH_INDEX");
+        this.emitter.emitAction("TYPESENSE_REFRESH_INDEX");
         return res.status(201).json({
           data: {
             status: "success",
-            type: "TYPESENCE_REFRESH_INDEX"
+            type: "TYPESENSE_REFRESH_INDEX"
           }
         });
       })
     );
     this.router.post(
-      "/typesence/index-data",
+      "/typesense/index-data",
       typeMiddleware(context),
       accessMiddleware(["admin"]),
       asyncHandler(async (req, res, next) => {
         let { collections } = req.body;
-        this.emitter.emitAction("TYPESENCE_INDEX_DATA", { collections });
+        this.emitter.emitAction("TYPESENSE_INDEX_DATA", { collections });
         return res.status(201).json({
           data: {
             status: "success",
-            type: "TYPESENCE_INDEX_DATA"
+            type: "TYPESENSE_INDEX_DATA"
           }
         });
       })
     );
     this.router.post(
-      "/typesence/clear-collections",
+      "/typesense/clear-collections",
       typeMiddleware(context),
       accessMiddleware(["admin"]),
       asyncHandler(async (req, res, next) => {
         let { collections } = req.body;
-        this.emitter.emitAction("TYPESENCE_CLEAR_COLLECTIONS", { collections });
+        this.emitter.emitAction("TYPESENSE_CLEAR_SCHEMA", { collections });
         return res.status(201).json({
           data: {
             status: "success",
-            type: "TYPESENCE_CLEAR_COLLECTIONS"
+            type: "TYPESENSE_CLEAR_SCHEMA"
           }
         });
       })
@@ -45433,58 +45407,10 @@ const collections = [
       },
       {
         "collection": COLLECTION_CONFIG,
-        "field": "typesence_api_key",
-        "type": "text",
-        "schema": {
-          "name": "typesence_api_key",
-          "table": COLLECTION_CONFIG,
-          "schema": "public",
-          "data_type": "text",
-          "is_nullable": true,
-          "generation_expression": null,
-          "default_value": null,
-          "is_generated": false,
-          "max_length": null,
-          "comment": null,
-          "numeric_precision": null,
-          "numeric_scale": null,
-          "is_unique": false,
-          "is_primary_key": false,
-          "has_auto_increment": false,
-          "foreign_key_schema": null,
-          "foreign_key_table": null,
-          "foreign_key_column": null
-        },
-        "meta": {
-          "collection": COLLECTION_CONFIG,
-          "field": "typesence_api_key",
-          "special": null,
-          "interface": "input",
-          "options": {
-            "trim": true,
-            "masked": true
-          },
-          "display": "formatted-value",
-          "display_options": null,
-          "readonly": true,
-          "hidden": false,
-          "sort": 1,
-          "width": "full",
-          "translations": null,
-          "note": null,
-          "conditions": null,
-          "required": false,
-          "group": "typesense_configs",
-          "validation": null,
-          "validation_message": null
-        }
-      },
-      {
-        "collection": COLLECTION_CONFIG,
-        "field": "typesence_indexing",
+        "field": "typesense_urls",
         "type": "json",
         "schema": {
-          "name": "typesence_indexing",
+          "name": "typesense_urls",
           "table": COLLECTION_CONFIG,
           "schema": "public",
           "data_type": "json",
@@ -45505,125 +45431,7 @@ const collections = [
         },
         "meta": {
           "collection": COLLECTION_CONFIG,
-          "field": "typesence_indexing",
-          "special": [
-            "cast-json"
-          ],
-          "interface": "list",
-          "options": {
-            "fields": [
-              {
-                "field": "collection",
-                "name": "collection",
-                "type": "string",
-                "meta": {
-                  "field": "collection",
-                  "width": "full",
-                  "type": "string",
-                  "required": true,
-                  "interface": "input",
-                  "options": {
-                    "choices": null,
-                    "trim": true,
-                    "iconLeft": "backup_table"
-                  }
-                }
-              },
-              {
-                "field": "query",
-                "name": "query",
-                "type": "json",
-                "meta": {
-                  "field": "query",
-                  "width": "full",
-                  "type": "json",
-                  "required": true,
-                  "interface": "input-code",
-                  "options": {
-                    "language": "JSON",
-                    "lineWrapping": true
-                  }
-                }
-              },
-              {
-                "field": "function_parse",
-                "name": "function_parse",
-                "type": "text",
-                "meta": {
-                  "field": "function_parse",
-                  "width": "full",
-                  "type": "text",
-                  "required": true,
-                  "interface": "input-code",
-                  "options": {
-                    "language": "javascript",
-                    "lineWrapping": true,
-                    "template": "module.exports = function(data) {\n    const escapeHtml = (text) => {\n        return text ? text?.replace(/(<([^>]+)>)/gi, '') : text\n    }\n	// Do something...\n	return []\n}"
-                  },
-                  "display": null
-                }
-              },
-              {
-                "field": "schema",
-                "name": "schema",
-                "type": "json",
-                "meta": {
-                  "field": "schema",
-                  "width": "full",
-                  "type": "json",
-                  "required": true,
-                  "interface": "input-code",
-                  "options": {
-                    "language": "JSON",
-                    "lineWrapping": true
-                  }
-                }
-              }
-            ],
-            "template": "Collection: {{collection}}  |  Schema: {{schema.name}}"
-          },
-          "display": "raw",
-          "display_options": null,
-          "readonly": false,
-          "hidden": false,
-          "sort": 3,
-          "width": "full",
-          "translations": null,
-          "note": null,
-          "conditions": null,
-          "required": false,
-          "group": "typesense_configs",
-          "validation": null,
-          "validation_message": null
-        }
-      },
-      {
-        "collection": COLLECTION_CONFIG,
-        "field": "typesence_urls",
-        "type": "json",
-        "schema": {
-          "name": "typesence_urls",
-          "table": COLLECTION_CONFIG,
-          "schema": "public",
-          "data_type": "json",
-          "is_nullable": true,
-          "generation_expression": null,
-          "default_value": null,
-          "is_generated": false,
-          "max_length": null,
-          "comment": null,
-          "numeric_precision": null,
-          "numeric_scale": null,
-          "is_unique": false,
-          "is_primary_key": false,
-          "has_auto_increment": false,
-          "foreign_key_schema": null,
-          "foreign_key_table": null,
-          "foreign_key_column": null
-        },
-        "meta": {
-          "collection": COLLECTION_CONFIG,
-          "field": "typesence_urls",
+          "field": "typesense_urls",
           "special": [
             "cast-json"
           ],
@@ -45696,12 +45504,8 @@ const collections = [
           "options": {
             "choices": [
               {
-                "text": "Typesence",
-                "value": "typesence"
-              },
-              {
-                "text": "Elasticsearch",
-                "value": "elasticsearch"
+                "text": "Typesense",
+                "value": "typesense"
               }
             ]
           },
@@ -45709,12 +45513,8 @@ const collections = [
           "display_options": {
             "choices": [
               {
-                "text": "Typesence",
-                "value": "typesence"
-              },
-              {
-                "text": "Elasticsearch",
-                "value": "elasticsearch"
+                "text": "Typesense",
+                "value": "typesense"
               }
             ]
           },
@@ -45761,7 +45561,7 @@ const collections = [
                 "_and": [
                   {
                     "engine": {
-                      "_neq": "typesence"
+                      "_neq": "typesense"
                     }
                   }
                 ]
@@ -45778,12 +45578,818 @@ const collections = [
           "validation": null,
           "validation_message": null
         }
+      },
+      {
+        "collection": COLLECTION_CONFIG,
+        "field": "typesense_schema",
+        "type": "alias",
+        "schema": null,
+        "meta": {
+          "collection": COLLECTION_CONFIG,
+          "field": "typesense_schema",
+          "special": [
+            "o2m"
+          ],
+          "interface": "list-o2m",
+          "options": {
+            "layout": "table",
+            "fields": [
+              "id",
+              "status",
+              "collection",
+              "schema_name",
+              "query"
+            ]
+          },
+          "display": "related-values",
+          "display_options": {
+            "template": "{{schema_name}}"
+          },
+          "readonly": false,
+          "hidden": false,
+          "sort": 4,
+          "width": "full",
+          "translations": null,
+          "note": null,
+          "conditions": null,
+          "required": false,
+          "group": "typesense_configs",
+          "validation": null,
+          "validation_message": null
+        }
       }
     ]
+  },
+  {
+    "collection": COLLECTION_TYPESENSE_SCHEMA,
+    "meta": {
+      "collection": COLLECTION_TYPESENSE_SCHEMA,
+      "icon": null,
+      "note": null,
+      "display_template": null,
+      "hidden": true,
+      "singleton": false,
+      "translations": null,
+      "archive_field": "status",
+      "archive_app_filter": true,
+      "archive_value": "archived",
+      "unarchive_value": "draft",
+      "sort_field": "sort",
+      "accountability": "all",
+      "color": null,
+      "item_duplication_fields": null,
+      "sort": 1,
+      "group": "search_engine_configs",
+      "collapse": "open",
+      "preview_url": null,
+      "versioning": false
+    },
+    fields: [
+      {
+        "collection": COLLECTION_TYPESENSE_SCHEMA,
+        "field": "id",
+        "type": "integer",
+        "schema": {
+          "name": "id",
+          "table": COLLECTION_TYPESENSE_SCHEMA,
+          "schema": "public",
+          "data_type": "integer",
+          "is_nullable": false,
+          "generation_expression": null,
+          "default_value": `nextval('${COLLECTION_TYPESENSE_SCHEMA}_id_seq'::regclass)`,
+          "is_generated": false,
+          "max_length": null,
+          "comment": null,
+          "numeric_precision": 32,
+          "numeric_scale": 0,
+          "is_unique": true,
+          "is_primary_key": true,
+          "has_auto_increment": true,
+          "foreign_key_schema": null,
+          "foreign_key_table": null,
+          "foreign_key_column": null
+        },
+        "meta": {
+          "collection": COLLECTION_TYPESENSE_SCHEMA,
+          "field": "id",
+          "special": null,
+          "interface": "input",
+          "options": null,
+          "display": null,
+          "display_options": null,
+          "readonly": true,
+          "hidden": true,
+          "sort": 1,
+          "width": "full",
+          "translations": null,
+          "note": null,
+          "conditions": null,
+          "required": false,
+          "group": null,
+          "validation": null,
+          "validation_message": null
+        }
+      },
+      {
+        "collection": COLLECTION_TYPESENSE_SCHEMA,
+        "field": "schema_name",
+        "type": "string",
+        "schema": {
+          "name": "schema_name",
+          "table": COLLECTION_TYPESENSE_SCHEMA,
+          "schema": "public",
+          "data_type": "character varying",
+          "is_nullable": true,
+          "generation_expression": null,
+          "default_value": null,
+          "is_generated": false,
+          "max_length": 255,
+          "comment": null,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "is_unique": true,
+          "is_primary_key": false,
+          "has_auto_increment": false,
+          "foreign_key_schema": null,
+          "foreign_key_table": null,
+          "foreign_key_column": null
+        },
+        "meta": {
+          "collection": COLLECTION_TYPESENSE_SCHEMA,
+          "field": "schema_name",
+          "special": null,
+          "interface": "input",
+          "options": null,
+          "display": null,
+          "display_options": null,
+          "readonly": false,
+          "hidden": false,
+          "sort": 8,
+          "width": "full",
+          "translations": null,
+          "note": null,
+          "conditions": null,
+          "required": true,
+          "group": null,
+          "validation": null,
+          "validation_message": null
+        }
+      },
+      {
+        "collection": COLLECTION_TYPESENSE_SCHEMA,
+        "field": "status",
+        "type": "string",
+        "schema": {
+          "name": "status",
+          "table": COLLECTION_TYPESENSE_SCHEMA,
+          "schema": "public",
+          "data_type": "character varying",
+          "is_nullable": false,
+          "generation_expression": null,
+          "default_value": "draft",
+          "is_generated": false,
+          "max_length": 255,
+          "comment": null,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "is_unique": false,
+          "is_primary_key": false,
+          "has_auto_increment": false,
+          "foreign_key_schema": null,
+          "foreign_key_table": null,
+          "foreign_key_column": null
+        },
+        "meta": {
+          "collection": COLLECTION_TYPESENSE_SCHEMA,
+          "field": "status",
+          "special": null,
+          "interface": "select-dropdown",
+          "options": {
+            "choices": [
+              {
+                "text": "$t:published",
+                "value": "published",
+                "color": "var(--theme--primary)"
+              },
+              {
+                "text": "$t:draft",
+                "value": "draft",
+                "color": "var(--theme--foreground)"
+              },
+              {
+                "text": "$t:archived",
+                "value": "archived",
+                "color": "var(--theme--warning)"
+              }
+            ]
+          },
+          "display": "labels",
+          "display_options": {
+            "showAsDot": true,
+            "choices": [
+              {
+                "text": "$t:published",
+                "value": "published",
+                "color": "var(--theme--primary)",
+                "foreground": "var(--theme--primary)",
+                "background": "var(--theme--primary-background)"
+              },
+              {
+                "text": "$t:draft",
+                "value": "draft",
+                "color": "var(--theme--foreground)",
+                "foreground": "var(--theme--foreground)",
+                "background": "var(--theme--background-normal)"
+              },
+              {
+                "text": "$t:archived",
+                "value": "archived",
+                "color": "var(--theme--warning)",
+                "foreground": "var(--theme--warning)",
+                "background": "var(--theme--warning-background)"
+              }
+            ]
+          },
+          "readonly": false,
+          "hidden": false,
+          "sort": 2,
+          "width": "full",
+          "translations": null,
+          "note": null,
+          "conditions": null,
+          "required": false,
+          "group": null,
+          "validation": null,
+          "validation_message": null
+        }
+      },
+      {
+        "collection": COLLECTION_TYPESENSE_SCHEMA,
+        "field": "sort",
+        "type": "integer",
+        "schema": {
+          "name": "sort",
+          "table": COLLECTION_TYPESENSE_SCHEMA,
+          "schema": "public",
+          "data_type": "integer",
+          "is_nullable": true,
+          "generation_expression": null,
+          "default_value": null,
+          "is_generated": false,
+          "max_length": null,
+          "comment": null,
+          "numeric_precision": 32,
+          "numeric_scale": 0,
+          "is_unique": false,
+          "is_primary_key": false,
+          "has_auto_increment": false,
+          "foreign_key_schema": null,
+          "foreign_key_table": null,
+          "foreign_key_column": null
+        },
+        "meta": {
+          "collection": COLLECTION_TYPESENSE_SCHEMA,
+          "field": "sort",
+          "special": null,
+          "interface": "input",
+          "options": null,
+          "display": null,
+          "display_options": null,
+          "readonly": false,
+          "hidden": true,
+          "sort": 3,
+          "width": "full",
+          "translations": null,
+          "note": null,
+          "conditions": null,
+          "required": false,
+          "group": null,
+          "validation": null,
+          "validation_message": null
+        }
+      },
+      {
+        "collection": COLLECTION_TYPESENSE_SCHEMA,
+        "field": "user_created",
+        "type": "uuid",
+        "schema": {
+          "name": "user_created",
+          "table": COLLECTION_TYPESENSE_SCHEMA,
+          "schema": "public",
+          "data_type": "uuid",
+          "is_nullable": true,
+          "generation_expression": null,
+          "default_value": null,
+          "is_generated": false,
+          "max_length": null,
+          "comment": null,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "is_unique": false,
+          "is_primary_key": false,
+          "has_auto_increment": false,
+          "foreign_key_schema": "public",
+          "foreign_key_table": "directus_users",
+          "foreign_key_column": "id"
+        },
+        "meta": {
+          "collection": COLLECTION_TYPESENSE_SCHEMA,
+          "field": "user_created",
+          "special": [
+            "user-created"
+          ],
+          "interface": "select-dropdown-m2o",
+          "options": {
+            "template": "{{avatar.$thumbnail}} {{first_name}} {{last_name}}"
+          },
+          "display": "user",
+          "display_options": null,
+          "readonly": true,
+          "hidden": true,
+          "sort": 4,
+          "width": "half",
+          "translations": null,
+          "note": null,
+          "conditions": null,
+          "required": false,
+          "group": null,
+          "validation": null,
+          "validation_message": null
+        }
+      },
+      {
+        "collection": COLLECTION_TYPESENSE_SCHEMA,
+        "field": "date_created",
+        "type": "timestamp",
+        "schema": {
+          "name": "date_created",
+          "table": COLLECTION_TYPESENSE_SCHEMA,
+          "schema": "public",
+          "data_type": "timestamp with time zone",
+          "is_nullable": true,
+          "generation_expression": null,
+          "default_value": null,
+          "is_generated": false,
+          "max_length": null,
+          "comment": null,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "is_unique": false,
+          "is_primary_key": false,
+          "has_auto_increment": false,
+          "foreign_key_schema": null,
+          "foreign_key_table": null,
+          "foreign_key_column": null
+        },
+        "meta": {
+          "collection": COLLECTION_TYPESENSE_SCHEMA,
+          "field": "date_created",
+          "special": [
+            "date-created"
+          ],
+          "interface": "datetime",
+          "options": null,
+          "display": "datetime",
+          "display_options": {
+            "relative": true
+          },
+          "readonly": true,
+          "hidden": true,
+          "sort": 5,
+          "width": "half",
+          "translations": null,
+          "note": null,
+          "conditions": null,
+          "required": false,
+          "group": null,
+          "validation": null,
+          "validation_message": null
+        }
+      },
+      {
+        "collection": COLLECTION_TYPESENSE_SCHEMA,
+        "field": "user_updated",
+        "type": "uuid",
+        "schema": {
+          "name": "user_updated",
+          "table": COLLECTION_TYPESENSE_SCHEMA,
+          "schema": "public",
+          "data_type": "uuid",
+          "is_nullable": true,
+          "generation_expression": null,
+          "default_value": null,
+          "is_generated": false,
+          "max_length": null,
+          "comment": null,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "is_unique": false,
+          "is_primary_key": false,
+          "has_auto_increment": false,
+          "foreign_key_schema": "public",
+          "foreign_key_table": "directus_users",
+          "foreign_key_column": "id"
+        },
+        "meta": {
+          "collection": COLLECTION_TYPESENSE_SCHEMA,
+          "field": "user_updated",
+          "special": [
+            "user-updated"
+          ],
+          "interface": "select-dropdown-m2o",
+          "options": {
+            "template": "{{avatar.$thumbnail}} {{first_name}} {{last_name}}"
+          },
+          "display": "user",
+          "display_options": null,
+          "readonly": true,
+          "hidden": true,
+          "sort": 6,
+          "width": "half",
+          "translations": null,
+          "note": null,
+          "conditions": null,
+          "required": false,
+          "group": null,
+          "validation": null,
+          "validation_message": null
+        }
+      },
+      {
+        "collection": COLLECTION_TYPESENSE_SCHEMA,
+        "field": "date_updated",
+        "type": "timestamp",
+        "schema": {
+          "name": "date_updated",
+          "table": COLLECTION_TYPESENSE_SCHEMA,
+          "schema": "public",
+          "data_type": "timestamp with time zone",
+          "is_nullable": true,
+          "generation_expression": null,
+          "default_value": null,
+          "is_generated": false,
+          "max_length": null,
+          "comment": null,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "is_unique": false,
+          "is_primary_key": false,
+          "has_auto_increment": false,
+          "foreign_key_schema": null,
+          "foreign_key_table": null,
+          "foreign_key_column": null
+        },
+        "meta": {
+          "collection": COLLECTION_TYPESENSE_SCHEMA,
+          "field": "date_updated",
+          "special": [
+            "date-updated"
+          ],
+          "interface": "datetime",
+          "options": null,
+          "display": "datetime",
+          "display_options": {
+            "relative": true
+          },
+          "readonly": true,
+          "hidden": true,
+          "sort": 7,
+          "width": "half",
+          "translations": null,
+          "note": null,
+          "conditions": null,
+          "required": false,
+          "group": null,
+          "validation": null,
+          "validation_message": null
+        }
+      },
+      {
+        "collection": COLLECTION_TYPESENSE_SCHEMA,
+        "field": "query",
+        "type": "json",
+        "schema": {
+          "name": "query",
+          "table": COLLECTION_TYPESENSE_SCHEMA,
+          "schema": "public",
+          "data_type": "json",
+          "is_nullable": true,
+          "generation_expression": null,
+          "default_value": null,
+          "is_generated": false,
+          "max_length": null,
+          "comment": null,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "is_unique": false,
+          "is_primary_key": false,
+          "has_auto_increment": false,
+          "foreign_key_schema": null,
+          "foreign_key_table": null,
+          "foreign_key_column": null
+        },
+        "meta": {
+          "collection": COLLECTION_TYPESENSE_SCHEMA,
+          "field": "query",
+          "special": [
+            "cast-json"
+          ],
+          "interface": "input-code",
+          "options": {
+            "template": '{\n    "filter": {\n        "status": "published"\n    },\n    "fields": [\n        "*"\n    ],\n    "sort": [\n        "-id"\n    ],\n    "limit": -1\n}',
+            "lineWrapping": true
+          },
+          "display": null,
+          "display_options": null,
+          "readonly": false,
+          "hidden": false,
+          "sort": 9,
+          "width": "full",
+          "translations": null,
+          "note": null,
+          "conditions": null,
+          "required": true,
+          "group": null,
+          "validation": null,
+          "validation_message": null
+        }
+      },
+      {
+        "collection": COLLECTION_TYPESENSE_SCHEMA,
+        "field": "schema",
+        "type": "json",
+        "schema": {
+          "name": "schema",
+          "table": COLLECTION_TYPESENSE_SCHEMA,
+          "schema": "public",
+          "data_type": "json",
+          "is_nullable": true,
+          "generation_expression": null,
+          "default_value": null,
+          "is_generated": false,
+          "max_length": null,
+          "comment": null,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "is_unique": false,
+          "is_primary_key": false,
+          "has_auto_increment": false,
+          "foreign_key_schema": null,
+          "foreign_key_table": null,
+          "foreign_key_column": null
+        },
+        "meta": {
+          "collection": COLLECTION_TYPESENSE_SCHEMA,
+          "field": "schema",
+          "special": [
+            "cast-json"
+          ],
+          "interface": "input-code",
+          "options": {
+            "template": '{\n    "fields": [\n        {\n            "name": "id",\n            "type": "auto"\n        },\n        {\n            "name": "thumbnail",\n            "type": "auto",\n            "optional": true\n        },\n        {\n            "name": "title",\n            "type": "auto"\n        },\n        {\n            "name": "slug",\n            "type": "auto"\n        },\n        {\n            "name": "date_created",\n            "type": "auto",\n            "optional": true\n        },\n        {\n            "name": "date_updated",\n            "type": "auto",\n            "optional": true\n        }\n    ],\n    "token_separators": [\n        "+",\n        "-",\n        "@",\n        "."\n    ]\n}',
+            "lineWrapping": true
+          },
+          "display": null,
+          "display_options": null,
+          "readonly": false,
+          "hidden": false,
+          "sort": 11,
+          "width": "full",
+          "translations": null,
+          "note": null,
+          "conditions": null,
+          "required": true,
+          "group": null,
+          "validation": null,
+          "validation_message": null
+        }
+      },
+      {
+        "collection": COLLECTION_TYPESENSE_SCHEMA,
+        "field": "collection",
+        "type": "string",
+        "schema": {
+          "name": "collection",
+          "table": COLLECTION_TYPESENSE_SCHEMA,
+          "schema": "public",
+          "data_type": "character varying",
+          "is_nullable": true,
+          "generation_expression": null,
+          "default_value": null,
+          "is_generated": false,
+          "max_length": 255,
+          "comment": null,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "is_unique": false,
+          "is_primary_key": false,
+          "has_auto_increment": false,
+          "foreign_key_schema": null,
+          "foreign_key_table": null,
+          "foreign_key_column": null
+        },
+        "meta": {
+          "collection": COLLECTION_TYPESENSE_SCHEMA,
+          "field": "collection",
+          "special": null,
+          "interface": "input",
+          "options": null,
+          "display": null,
+          "display_options": null,
+          "readonly": false,
+          "hidden": false,
+          "sort": 8,
+          "width": "full",
+          "translations": null,
+          "note": null,
+          "conditions": null,
+          "required": true,
+          "group": null,
+          "validation": null,
+          "validation_message": null
+        }
+      },
+      {
+        "collection": COLLECTION_TYPESENSE_SCHEMA,
+        "field": "function_parse",
+        "type": "text",
+        "schema": {
+          "name": "function_parse",
+          "table": COLLECTION_TYPESENSE_SCHEMA,
+          "schema": "public",
+          "data_type": "text",
+          "is_nullable": true,
+          "generation_expression": null,
+          "default_value": null,
+          "is_generated": false,
+          "max_length": null,
+          "comment": null,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "is_unique": false,
+          "is_primary_key": false,
+          "has_auto_increment": false,
+          "foreign_key_schema": null,
+          "foreign_key_table": null,
+          "foreign_key_column": null
+        },
+        "meta": {
+          "collection": COLLECTION_TYPESENSE_SCHEMA,
+          "field": "function_parse",
+          "special": null,
+          "interface": "input-code",
+          "options": {
+            "language": "javascript",
+            "template": "module.exports = function(data) {\n    const escapeHtml = (text) => {\n        return text ? text?.replace(/(<([^>]+)>)/gi, '') : text\n    }\n	// Do something...\n	return []\n}"
+          },
+          "display": null,
+          "display_options": null,
+          "readonly": false,
+          "hidden": false,
+          "sort": 10,
+          "width": "full",
+          "translations": null,
+          "note": null,
+          "conditions": null,
+          "required": true,
+          "group": null,
+          "validation": null,
+          "validation_message": null
+        }
+      },
+      {
+        "collection": COLLECTION_TYPESENSE_SCHEMA,
+        "field": "data_indexed",
+        "type": "json",
+        "schema": {
+          "name": "data_indexed",
+          "table": COLLECTION_TYPESENSE_SCHEMA,
+          "schema": "public",
+          "data_type": "json",
+          "is_nullable": true,
+          "generation_expression": null,
+          "default_value": null,
+          "is_generated": false,
+          "max_length": null,
+          "comment": null,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "is_unique": false,
+          "is_primary_key": false,
+          "has_auto_increment": false,
+          "foreign_key_schema": null,
+          "foreign_key_table": null,
+          "foreign_key_column": null
+        },
+        "meta": {
+          "collection": COLLECTION_TYPESENSE_SCHEMA,
+          "field": "data_indexed",
+          "special": [
+            "cast-json"
+          ],
+          "interface": "input-code",
+          "options": {
+            "lineWrapping": true
+          },
+          "display": null,
+          "display_options": null,
+          "readonly": false,
+          "hidden": false,
+          "sort": 12,
+          "width": "full",
+          "translations": null,
+          "note": null,
+          "conditions": null,
+          "required": false,
+          "group": null,
+          "validation": null,
+          "validation_message": null
+        }
+      },
+      {
+        "collection": COLLECTION_TYPESENSE_SCHEMA,
+        "field": "typesense_config",
+        "type": "integer",
+        "schema": {
+          "name": "typesense_config",
+          "table": COLLECTION_TYPESENSE_SCHEMA,
+          "schema": "public",
+          "data_type": "integer",
+          "is_nullable": true,
+          "generation_expression": null,
+          "default_value": null,
+          "is_generated": false,
+          "max_length": null,
+          "comment": null,
+          "numeric_precision": 32,
+          "numeric_scale": 0,
+          "is_unique": false,
+          "is_primary_key": false,
+          "has_auto_increment": false,
+          "foreign_key_schema": "public",
+          "foreign_key_table": "search_engine_configs",
+          "foreign_key_column": "id"
+        },
+        "meta": {
+          "collection": COLLECTION_TYPESENSE_SCHEMA,
+          "field": "typesense_config",
+          "special": [
+            "m2o"
+          ],
+          "interface": "select-dropdown-m2o",
+          "options": null,
+          "display": null,
+          "display_options": null,
+          "readonly": false,
+          "hidden": true,
+          "sort": 13,
+          "width": "full",
+          "translations": null,
+          "note": null,
+          "conditions": null,
+          "required": false,
+          "group": null,
+          "validation": null,
+          "validation_message": null
+        }
+      }
+    ],
+    "schema": {
+      "schema": "public",
+      "name": COLLECTION_TYPESENSE_SCHEMA,
+      "comment": null
+    }
   }
 ];
 
-const relations = [];
+const relations = [
+  {
+    "collection": COLLECTION_TYPESENSE_SCHEMA,
+    "field": "typesense_config",
+    "related_collection": COLLECTION_CONFIG,
+    "schema": {
+      "constraint_name": `${COLLECTION_TYPESENSE_SCHEMA}_typesense_config_foreign`,
+      "table": COLLECTION_TYPESENSE_SCHEMA,
+      "column": "typesense_config",
+      "foreign_key_schema": "public",
+      "foreign_key_table": COLLECTION_CONFIG,
+      "foreign_key_column": "id",
+      "on_update": "NO ACTION",
+      "on_delete": "SET NULL"
+    },
+    "meta": {
+      "many_collection": COLLECTION_TYPESENSE_SCHEMA,
+      "many_field": "typesense_config",
+      "one_collection": COLLECTION_CONFIG,
+      "one_field": "typesense_schema",
+      "one_collection_field": null,
+      "one_allowed_collections": null,
+      "junction_field": null,
+      "sort_field": null,
+      "one_deselect_action": "nullify"
+    }
+  }
+];
 
 const initialCollections = async (context) => {
   const { services, logger } = context;
@@ -45875,23 +46481,16 @@ const initialCollections = async (context) => {
   logger.info({ name }, `[!] Initial schema success !`);
 };
 const loadEnvironments = async (context) => {
-  let { logger, env, database } = context;
-  let envData = {
-    ...env
-  };
+  let { logger, env } = context;
   let baseClass = new BaseService({ context });
-  let { engine_types, typesence_api_key, typesence_urls, typesence_indexing } = await baseClass.loadConfigs({
+  let { engine_types, typesense_urls } = await baseClass.loadConfigs({
     fields: [
       "engine_types",
-      "typesence_api_key",
-      "typesence_urls",
-      "typesence_indexing"
+      "typesense_urls"
     ]
   });
   env["SEARCH_ENGINE_TYPES"] = engine_types;
-  env["TYPESENSE_API_URLS"] = typesence_urls;
-  env["TYPESENCE_INDEXING"] = typesence_indexing;
-  await baseClass.upsertConfigs({ typesence_api_key: envData["TYPESENSE_API_KEY"] });
+  env["TYPESENSE_API_URLS"] = typesense_urls;
   logger.debug({ name: EXTENSION_NAME }, "[+] Load configs success !");
 };
 

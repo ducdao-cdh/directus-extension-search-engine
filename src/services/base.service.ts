@@ -63,33 +63,33 @@ export class BaseService {
     }
 
 
-    async injectOptions() {
-        let types = this.env['SEARCH_ENGINE_TYPES']
+    // async injectOptions() {
+    //     let types = this.env['SEARCH_ENGINE_TYPES']
 
-        types = typeof types === 'string' ? [types] : types
+    //     types = typeof types === 'string' ? [types] : types
 
-        if (!types?.length) return
+    //     if (!types?.length) return
 
-        types = types.map((item: string) => ({
-            text: titleCase(item),
-            value: item
-        }))
+    //     types = types.map((item: string) => ({
+    //         text: titleCase(item),
+    //         value: item
+    //     }))
 
-        let fieldService = new this.services.FieldsService({ schema: await this.getSchema() })
+    //     let fieldService = new this.services.FieldsService({ schema: await this.getSchema() })
 
-        await fieldService.updateField(COLLECTION_CONFIG, {
-            field: "engine_types",
-            meta: {
-                options: {
-                    choices: types
-                },
-                display: "labels",
-                display_options: {
-                    choices: types
-                }
-            }
-        })
+    //     await fieldService.updateField(COLLECTION_CONFIG, {
+    //         field: "engine_types",
+    //         meta: {
+    //             options: {
+    //                 choices: types
+    //             },
+    //             display: "labels",
+    //             display_options: {
+    //                 choices: types
+    //             }
+    //         }
+    //     })
 
-    }
+    // }
 
 }

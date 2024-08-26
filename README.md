@@ -27,15 +27,15 @@ npm i directus-extension-search-engine
 
 ### 1. Field `Engine Type`
 Allows to configure the type of search engine to be used
-> **Note:** currently I only support `typesence`, in the future I will support `elasticsearch`
+> **Note:** currently I only support `typesense`, in the future I will support `elasticsearch`
 
-### 2. Field `Typesence API Key`
+### 2. Field `Typesense API Key`
 This field is configured in env. Any change to the value in this field will be invalid.
 
-### 3. Field `Typesence Urls`
-This field specifies the URLs of the `typesence` service. These services must all share the same API key configured in env
+### 3. Field `Typesense Urls`
+This field specifies the URLs of the `typesense` service. These services must all share the same API key configured in env
 
-### 4. Field `Typesence Indexing`
+### 4. Field `Typesense Indexing`
 The processing flow here will be: get data in the query configured in `query` and `collection`, then process the data with Javascript in `Function Parse` so that the output matches the schema configured in `Schema`
 #### 4.1. Query data
 <img src="docs/query.png" width="500" height="500" />
@@ -53,7 +53,7 @@ The above data will be put into `Function Parse` with the variable `data` and pr
 ## III. Router search
 ### 1. Search with collection index
 
-> **POST\<CMS url\>/search/typesence/search-collection/:collection** 
+> **POST \<CMS url\>/search/typesense/search-collection/:collection** 
 
 **Authorization: \<user token\>**
 
@@ -73,7 +73,7 @@ The above data will be put into `Function Parse` with the variable `data` and pr
 
 
 ### 2. Multi-search
-> **POST \<CMS url\>/search/typesence/multi-search** 
+> **POST \<CMS url\>/search/typesense/multi-search** 
 
 **Authorization: \<user token\>**
 
@@ -83,7 +83,7 @@ The above data will be put into `Function Parse` with the variable `data` and pr
     "query_by": "name",
 }
 ```
-> **Note:** query params will be used as `commonSearchParams` in `typesence`
+> **Note:** query params will be used as `commonSearchParams` in `typesense`
 (https://typesense.org/docs/0.25.2/api/federated-multi-search.html#multi-search-parameters)
 
 
@@ -94,7 +94,7 @@ The above data will be put into `Function Parse` with the variable `data` and pr
   "query_by" : "title"
 }
 ```
-> **Note:** this body will be used as `searchRequests ` in `typesence`
+> **Note:** this body will be used as `searchRequests ` in `typesense`
 (https://typesense.org/docs/0.25.2/api/federated-multi-search.html#multi-search-parameters)
 
 > **Body config:** https://typesense.org/docs/0.25.2/api/search.html#query-parameters
@@ -103,12 +103,12 @@ The above data will be put into `Function Parse` with the variable `data` and pr
 
 
 ### 3. Re-index data (Clear and re-index)
-> **POST \<CMS url\>/search/typesence/refresh-index** 
+> **POST \<CMS url\>/search/typesense/refresh-index** 
 
 **Authorization: \<admin token\>**
 
 ### 4. Data Indexing (with collections)
-> **POST \<CMS url\>/search/typesence/index-data** 
+> **POST \<CMS url\>/search/typesense/index-data** 
 
 **Authorization: \<admin token\>**
 
@@ -123,7 +123,7 @@ The above data will be put into `Function Parse` with the variable `data` and pr
 
 
 ### 5. Clear data index (with collections)
-> **POST \<CMS url\>/search/typesence/clear-collections** 
+> **POST \<CMS url\>/search/typesense/clear-collections** 
 
 **Authorization: \<admin token\>**
 

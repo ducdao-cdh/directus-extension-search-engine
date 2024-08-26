@@ -119,44 +119,31 @@ export const initialCollections = async (context: any) => {
 }
 
 export const loadEnvironments = async (context: any) => {
-    let { logger, env, database } = context
+    let { logger, env } = context
 
-    let envData = {
-        ...env
-    }
+
 
     let baseClass = new BaseService({ context })
 
-    let { engine_types, typesence_api_key, typesence_urls, typesence_indexing } = await baseClass.loadConfigs({
+    let { engine_types, typesense_urls } = await baseClass.loadConfigs({
         fields: [
             'engine_types',
-            'typesence_api_key',
-            'typesence_urls',
-            'typesence_indexing'
+            'typesense_urls'
         ]
     })
 
-
-    // logger.debug({ engine_types, typesence_api_key, typesence_urls, typesence_indexing })
-
+    // logger.debug({ engine_types, typesense_api_key, typesense_urls, typesense_indexing })
     env['SEARCH_ENGINE_TYPES'] = engine_types
-
-    env['TYPESENSE_API_URLS'] = typesence_urls
-    env['TYPESENCE_INDEXING'] = typesence_indexing
+    env['TYPESENSE_API_URLS'] = typesense_urls
 
 
     // console.log({
     //     env: env.TYPESENSE_API_URLS,
-    //     typesence_urls,
+    //     typesense_urls,
     //     test: env['TYPESENSE_API_URLS']
-    //     // TYPESENCE_API_URLS: env['TYPESENCE_API_URLS'],
-    //     // TYPESENCE_INDEXING: env['TYPESENCE_INDEXING'],
+    //     // TYPESENSE_API_URLS: env['TYPESENSE_API_URLS'],
+    //     // TYPESENSE_INDEXING: env['TYPESENSE_INDEXING'],
     // })
-
-
-
-    await baseClass.upsertConfigs({ typesence_api_key: envData['TYPESENSE_API_KEY'] })
-
     // await baseClass.injectOptions()
     logger.debug({ name: EXTENSION_NAME }, "[+] Load configs success !")
 } 

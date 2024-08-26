@@ -1,7 +1,7 @@
 import { Client, SearchClient } from "typesense"
-import { escapeHtml, execCode } from "../utils"
+import { execCode } from "../utils"
 import { BaseService } from "./base.service"
-import { EXTENSION_NAME } from "../data"
+import { COLLECTION_TYPESENSE_SCHEMA, EXTENSION_NAME } from "../data"
 import { SearchParams } from "typesense/lib/Typesense/Documents"
 import { MultiSearchRequestSchema, MultiSearchRequestsSchema } from "typesense/lib/Typesense/MultiSearch"
 import { ServiceUnavailableError } from "@directus/errors"
@@ -19,7 +19,7 @@ export class TypesenseClass extends BaseService {
         // this.logger.debug({
         //     TYPESENSE_API_URLS: this.env['TYPESENSE_API_URLS'],
         //     TYPESENSE_API_KEY: this.env['TYPESENSE_API_KEY'],
-        //     // TYPESENCE_INDEXING: this.env['TYPESENCE_INDEXING']
+        //     // TYPESENSE_INDEXING: this.env['TYPESENSE_INDEXING']
         // })
 
         this.client = new Client({
@@ -32,22 +32,62 @@ export class TypesenseClass extends BaseService {
             apiKey: this.env.TYPESENSE_API_KEY
         })
 
-        this.dataIndex = this.env.TYPESENCE_INDEXING
+        this.dataIndex = this.env.TYPESENSE_INDEXING
 
     }
 
-    async initCollectionSchema() {
+    async getSchemaIndex() {
+        let schema = await this.getSchema()
+        let service = new this.services.ItemsService(COLLECTION_TYPESENSE_SCHEMA, { schema })
+
+        return service.readByQuery({
+            filter: {
+                status: {
+                    _eq: "published"
+                }
+            },
+            fields: ['*'],
+            sort: ["sort", "id"],
+            limit: -1
+        })
+    }
+
+
+    async initCollectionSchema(payload: { schemas?: string[], collections?: string[] } | any) {
         try {
-            let collections = await this.client.collections().retrieve()
+
+            let [collections, dataIndex] = await Promise.all([
+                this.client.collections().retrieve(),
+                this.getSchemaIndex()
+            ])
+
+            if (payload.schemas) {
+                dataIndex = dataIndex.filter((item: any) => payload.schemas.includes(item.schema_name))
+            }
+
+            if (payload.collections) {
+                dataIndex = dataIndex.filter((item: any) => payload.collections.includes(item.collection))
+            }
+
+            dataIndex = dataIndex.filter((item: any) => !collections.some((ite: any) => ite.name === item.schema_name))
+
             // this.logger.debug({ collections })
 
-            let schemas = this.dataIndex.filter((item: any) => !collections.some((ite: any) => ite.name === item.schema.name))
+            for (let item of dataIndex) {
+                try {
+                    await this.client.collections().create({
+                        ...item.schema,
+                        name: item.schema_name
+                    })
+                } catch (error: any) {
+                    this.log.debug(`[!] Schema "${item.schema_name}" existed`)
+                    this.log.error("Error initCollectionSchema: " + error?.message)
+                    this.log.debug(error)
 
-            if (schemas.length > 0) {
-                return Promise.all(schemas.map(async (item: any) => this.client.collections().create(item.schema)))
-            } else {
-                this.log.debug("[!] Initial schema existed")
+                }
             }
+
+            this.log.debug("[!] Initial schema success !")
 
         } catch (error) {
             this.log.debug("[-] Error initCollections")
@@ -58,15 +98,18 @@ export class TypesenseClass extends BaseService {
 
     async actionRefreshIndexData() {
         try {
-            let schemas = this.dataIndex.map((item: any) => item.schema?.name)
+
+            let dataIndex = await this.getSchemaIndex()
+
+            let schemas = dataIndex.map((item: any) => item.schema_name)
 
             if (!schemas?.length) return
 
 
-            let collections: any = Array.from(new Set(this.dataIndex.map((item: any) => item.collection)))
+            let collections: any = Array.from(new Set(dataIndex.map((item: any) => item.collection)))
 
             await this.actionDropCollections(schemas)
-            await this.actionIndexData(collections)
+            await this.actionIndexDataCollection(collections)
 
 
         } catch (error) {
@@ -93,24 +136,73 @@ export class TypesenseClass extends BaseService {
         }
     }
 
-    async actionIndexData(collections?: string[]) {
+    async actionIndexDataCollection(collections?: string[]) {
         try {
+            let dataIndex = await this.getSchemaIndex()
+
             if (collections) {
-                this.dataIndex = this.dataIndex.filter((item: any) => collections?.includes(item.collection))
+                dataIndex = dataIndex.filter((item: any) => collections?.includes(item.collection))
             }
 
-            await this.initCollectionSchema()
+            await this.initCollectionSchema({ collections })
 
             // console.log({
             //     collections,
             //     dataIndex: this.dataIndex
             // })
 
+            return this.actionIndexing(dataIndex)
 
-            for (let item of this.dataIndex) {
-                let { collection, query, function_parse, schema } = item
+        } catch (error) {
+            this.log.error("[!] Error actionIndexData")
+            console.log(error)
+        }
+
+    }
+
+
+    async actionIndexDataSchema(schemas?: string[]) {
+        try {
+
+            this.logger.debug({ schemas })
+
+            let dataIndex = await this.getSchemaIndex()
+
+
+            if (schemas) {
+                dataIndex = dataIndex.filter((item: any) => schemas?.includes(item.schema_name))
+            }
+
+            await this.initCollectionSchema(schemas)
+
+            // console.log({
+            //     collections,
+            //     dataIndex: this.dataIndex
+            // })
+
+            return this.actionIndexing(dataIndex)
+
+        } catch (error) {
+            this.log.error("[!] Error actionIndexData")
+            console.log(error)
+        }
+    }
+
+
+
+    async actionIndexing(dataIndex: Array<any>) {
+        // this.logger.debug({ dataIndex })
+
+        let schemaService = new this.services.ItemsService(COLLECTION_TYPESENSE_SCHEMA, {
+            schema: await this.getSchema()
+        })
+
+        for (let item of dataIndex) {
+            try {
+                let { id, collection, query, function_parse, schema, schema_name } = item
                 let data = await this.getDataCollection(collection, query)
 
+                // this.logger.debug({ data })
                 if (!data?.length) continue
 
                 // this.logger.debug({ function_parse, data })
@@ -122,25 +214,35 @@ export class TypesenseClass extends BaseService {
 
                 // this.log.debug( { dataParse })
 
-
                 if (!dataParse?.length) continue
 
-                this.log.debug(`[+] Indexing data collection: ${schema.name} (${dataParse.length})`)
+                await schemaService.updateOne(id, {
+                    data_indexed: dataParse
+                }, {
+                    emitEvents: false
+                })
 
-                let index = 0
-                for (let record of dataParse) {
-                    await this.client.collections(schema.name).documents().upsert(record)
-                    this.log.debug(`[-] Indexed -> ${++index}/${dataParse.length}`)
-                }
+                this.log.debug(`[!] Indexing data collection: ${schema_name} (${dataParse.length} items)`)
 
-                this.log.debug(`[-->] Indexed data collection: ${schema.name}`)
+                let dataIndexed: any = await this.client.collections(schema_name).documents().import(dataParse, { action: 'upsert' })
+
+                let dataSuccess = dataIndexed.filter((ite: any) => ite.success === true).length
+                let dataFailure = dataParse.length - dataSuccess
+
+                this.log.debug(`[!] Success/Failure: ${dataSuccess}/${dataFailure} `)
+
+                this.log.debug(`[-->] Indexed data collection: ${schema_name}`)
+            } catch (error: any) {
+                this.log.error(`Error index schema "${item.schema_name}"`)
+                this.log.debug(error)
+                await schemaService.updateOne(item.id, {
+                    data_indexed: error?.message
+                }, {
+                    emitEvents: false
+                })
             }
 
-        } catch (error) {
-            this.log.error("[!] Error actionIndexData")
-            console.log(error)
         }
-
     }
 
     async actionMultiSearch(searchRequests: MultiSearchRequestsSchema, commonSearchParams?: Partial<MultiSearchRequestSchema>) {
@@ -180,13 +282,14 @@ export class TypesenseClass extends BaseService {
         }
     }
 
-    async actionDropCollections(collections: string[]) {
-        if (collections.length > 0) {
+    async actionDropCollections(schema: string[]) {
+        if (schema?.length > 0) {
             await this.searchClient.clearCache()
 
-            for (let collection of collections) {
+            for (let item of schema) {
                 try {
-                    await this.client.collections(collection).delete()
+                    await this.client.collections(item).delete()
+                    this.log.debug(`[!] Drop schema "${item}" success !`)
                 } catch (error: any) {
                     this.log.error("Error actionDropCollections")
                     this.logger.error(error?.message)
@@ -194,13 +297,4 @@ export class TypesenseClass extends BaseService {
             }
         }
     }
-
-
-
-
-
-
-
-
-
 }

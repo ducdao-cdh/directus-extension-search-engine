@@ -1,7 +1,6 @@
 import { defineHook } from '@directus/extensions-sdk'
 import { initialCollections, loadEnvironments } from './init.service'
 import { COLLECTION_CONFIG } from '../../data'
-import { BaseService } from '../../services/base.service'
 
 export default defineHook(({ init, action }, context) => {
 

@@ -11,27 +11,38 @@ export class EmitterEventClass extends BaseService {
         this.emitter = context.emitter
 
 
-        this.emitter.onAction("TYPESENCE_INDEX_DATA", async (payload: { collections: Array<string> }) => {
+        this.emitter.onAction("TYPESENSE_INDEX_DATA_SCHEMA", async (payload: { schema: Array<string> }) => {
             let typesenseClass = new TypesenseClass(context)
-            return typesenseClass.actionIndexData(payload.collections)
+            return typesenseClass.actionIndexDataSchema(payload.schema)
         })
 
-        this.emitter.onAction("TYPESENCE_CLEAR_COLLECTIONS", async (payload: { collections: Array<string> }) => {
+        this.emitter.onAction("TYPESENSE_INDEX_DATA_COLLECTION", async (payload: { collections: Array<string> }) => {
             let typesenseClass = new TypesenseClass(context)
-            return typesenseClass.actionDropCollections(payload.collections)
+            return typesenseClass.actionIndexDataCollection(payload.collections)
         })
 
-        this.emitter.onFilter("TYPESENCE_MULTI_SEARCH", async (payload: { searchRequests: any, commonSearchParams: any }) => {
+        this.emitter.onAction("TYPESENSE_CLEAR_SCHEMA", async (payload: { schema: Array<string> }) => {
+            let typesenseClass = new TypesenseClass(context)
+            return typesenseClass.actionDropCollections(payload.schema)
+        })
+
+        this.emitter.onFilter("TYPESENSE_CLEAR_SCHEMA", async (payload: { schema: Array<string> }) => {
+            let typesenseClass = new TypesenseClass(context)
+            return typesenseClass.actionDropCollections(payload.schema)
+        })
+
+
+        this.emitter.onFilter("TYPESENSE_MULTI_SEARCH", async (payload: { searchRequests: any, commonSearchParams: any }) => {
             let typesenseClass = new TypesenseClass(context)
             return typesenseClass.actionMultiSearch(payload.searchRequests, payload.commonSearchParams)
         })
 
-        this.emitter.onFilter("TYPESENCE_SEARCH_COLLECTION", async (payload: { collection: string, searchParameters: SearchParams }) => {
+        this.emitter.onFilter("TYPESENSE_SEARCH_COLLECTION", async (payload: { collection: string, searchParameters: SearchParams }) => {
             let typesenseClass = new TypesenseClass(context)
             return typesenseClass.actionSearchCollection(payload.collection, payload.searchParameters)
         })
 
-        this.emitter.onAction("TYPESENCE_REFRESH_INDEX", async () => {
+        this.emitter.onAction("TYPESENSE_REFRESH_INDEX", async () => {
             let typesenseClass = new TypesenseClass(context)
             return typesenseClass.actionRefreshIndexData()
         })

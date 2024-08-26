@@ -16,7 +16,7 @@ export class SearchControllerClass extends BaseService {
         super({ context })
         this.router = router
 
-        this.router.post("/typesence/search-collection/:collection",
+        this.router.post("/typesense/search-collection/:collection",
             typeMiddleware(context),
             accessMiddleware(['user'], context),
             asyncHandler(async (req: any, res: any, next: any) => {
@@ -24,7 +24,7 @@ export class SearchControllerClass extends BaseService {
                 let { collection } = req.params
                 let searchParameters = req.body as SearchParams
 
-                let { data, errors } = await this.emitter.emitFilter("TYPESENCE_SEARCH_COLLECTION", { collection, searchParameters })
+                let { data, errors } = await this.emitter.emitFilter("TYPESENSE_SEARCH_COLLECTION", { collection, searchParameters })
                 if (errors) {
                     return next(errors)
                 }
@@ -32,7 +32,7 @@ export class SearchControllerClass extends BaseService {
                 return res.status(201).json(data)
             }))
 
-        this.router.post("/typesence/multi-search",
+        this.router.post("/typesense/multi-search",
             typeMiddleware(context),
             accessMiddleware(['user'], context),
             asyncHandler(async (req: any, res: any, next: any) => {
@@ -40,59 +40,59 @@ export class SearchControllerClass extends BaseService {
                 let commonSearchParams = req.query as Partial<MultiSearchRequestSchema>
                 let searchRequests = req.body as MultiSearchRequestsSchema
 
-                let { data, errors } = await this.emitter.emitFilter("TYPESENCE_MULTI_SEARCH", { searchRequests, commonSearchParams })
+                let { data, errors } = await this.emitter.emitFilter("TYPESENSE_MULTI_SEARCH", { searchRequests, commonSearchParams })
                 if (errors) {
                     return next(errors)
                 }
                 return res.status(201).json(data)
             }))
 
-        this.router.post("/typesence/refresh-index",
+        this.router.post("/typesense/refresh-index",
             typeMiddleware(context),
             accessMiddleware(['admin'], context),
             asyncHandler(async (req: any, res: any, next: any) => {
 
-                this.emitter.emitAction("TYPESENCE_REFRESH_INDEX")
+                this.emitter.emitAction("TYPESENSE_REFRESH_INDEX")
 
                 return res.status(201).json({
                     data: {
                         status: "success",
-                        type: "TYPESENCE_REFRESH_INDEX"
+                        type: "TYPESENSE_REFRESH_INDEX"
                     }
                 })
             }))
 
-        this.router.post("/typesence/index-data",
+        this.router.post("/typesense/index-data",
             typeMiddleware(context),
             accessMiddleware(['admin'], context),
             asyncHandler(async (req: any, res: any, next: any) => {
 
                 let { collections } = req.body
 
-                this.emitter.emitAction("TYPESENCE_INDEX_DATA", { collections })
+                this.emitter.emitAction("TYPESENSE_INDEX_DATA", { collections })
 
                 return res.status(201).json({
                     data: {
                         status: "success",
-                        type: "TYPESENCE_INDEX_DATA"
+                        type: "TYPESENSE_INDEX_DATA"
                     }
                 })
             }))
 
 
-        this.router.post("/typesence/clear-collections",
+        this.router.post("/typesense/clear-collections",
             typeMiddleware(context),
             accessMiddleware(['admin'], context),
             asyncHandler(async (req: any, res: any, next: any) => {
 
                 let { collections } = req.body
 
-                this.emitter.emitAction("TYPESENCE_CLEAR_COLLECTIONS", { collections })
+                this.emitter.emitAction("TYPESENSE_CLEAR_SCHEMA", { collections })
 
                 return res.status(201).json({
                     data: {
                         status: "success",
-                        type: "TYPESENCE_CLEAR_COLLECTIONS"
+                        type: "TYPESENSE_CLEAR_SCHEMA"
                     }
                 })
             }))
