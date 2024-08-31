@@ -46,6 +46,8 @@ In this step, we will get data with `directus` `sdk` query (collection & query).
 
 #### 4.2 Parse data & index schema 
 <img src="docs/indexing.png" width="500" height="800" />
+<img src="docs/data_indexed.png" width="500" height="800" />
+
 
 The above data will be put into `Function Parse` with the variable `data` and processed. The data needs to be processed to match the schema configured in the `schema` field.
 

@@ -18,7 +18,7 @@ export class SearchControllerClass extends BaseService {
 
         this.router.post("/typesense/search-collection/:collection",
             typeMiddleware(context),
-            accessMiddleware(['user'], context),
+            // accessMiddleware(['user'], context),
             asyncHandler(async (req: any, res: any, next: any) => {
 
                 let { collection } = req.params
@@ -34,7 +34,7 @@ export class SearchControllerClass extends BaseService {
 
         this.router.post("/typesense/multi-search",
             typeMiddleware(context),
-            accessMiddleware(['user'], context),
+            // accessMiddleware(['user'], context),
             asyncHandler(async (req: any, res: any, next: any) => {
 
                 let commonSearchParams = req.query as Partial<MultiSearchRequestSchema>

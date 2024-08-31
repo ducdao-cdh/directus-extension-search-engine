@@ -164,7 +164,7 @@ export class TypesenseClass extends BaseService {
     async actionIndexDataSchema(schemas?: string[]) {
         try {
 
-            this.logger.debug({ schemas })
+            // this.logger.debug({ schemas })
 
             let dataIndex = await this.getSchemaIndex()
 

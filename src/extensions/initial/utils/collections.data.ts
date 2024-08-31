@@ -1079,7 +1079,7 @@ export const collections = [
                     },
                     "display": null,
                     "display_options": null,
-                    "readonly": false,
+                    "readonly": true,
                     "hidden": false,
                     "sort": 12,
                     "width": "full",
