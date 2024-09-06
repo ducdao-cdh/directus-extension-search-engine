@@ -1,1 +1,3 @@
-const o=[],t=[],c=[],e=[],n=[],p=[],r=[];export{t as displays,o as interfaces,c as layouts,e as modules,r as operations,n as panels,p as themes};
+const interfaces = [];const displays = [];const layouts = [];const modules = [];const panels = [];const themes = [];const operations = [];
+
+export { displays, interfaces, layouts, modules, operations, panels, themes };

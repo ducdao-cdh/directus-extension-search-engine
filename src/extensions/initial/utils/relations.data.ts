@@ -13,7 +13,7 @@ export const relations = [
             "foreign_key_table": COLLECTION_CONFIG,
             "foreign_key_column": "id",
             "on_update": "NO ACTION",
-            "on_delete": "SET NULL"
+            "on_delete": "CASCADE"
         },
         "meta": {
             "many_collection": COLLECTION_TYPESENSE_SCHEMA,
@@ -24,7 +24,7 @@ export const relations = [
             "one_allowed_collections": null,
             "junction_field": null,
             "sort_field": null,
-            "one_deselect_action": "nullify"
+            "one_deselect_action": "delete"
         }
     }
 ]
