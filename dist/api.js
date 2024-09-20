@@ -44928,6 +44928,7 @@ class TypesenseClass extends BaseService {
         await schemaService.updateOne(id, {
           data_indexed: dataParse
         }, {
+          autoPurgeCache: true,
           emitEvents: false
         });
         this.log.debug(`[!] Indexing data collection: ${schema_name} (${dataParse.length} items)`);
@@ -44942,6 +44943,7 @@ class TypesenseClass extends BaseService {
         await schemaService.updateOne(item.id, {
           data_indexed: error == null ? void 0 : error.message
         }, {
+          autoPurgeCache: true,
           emitEvents: false
         });
       }
@@ -45005,6 +45007,10 @@ class EmitterEventClass extends BaseService {
       let typesenseClass = new TypesenseClass(context);
       return typesenseClass.actionIndexDataCollection(payload.collections);
     });
+    this.emitter.onFilter("TYPESENSE_INDEX_DATA_COLLECTION", async (payload) => {
+      let typesenseClass = new TypesenseClass(context);
+      return typesenseClass.actionIndexDataCollection(payload.collections);
+    });
     this.emitter.onAction("TYPESENSE_CLEAR_SCHEMA", async (payload) => {
       let typesenseClass = new TypesenseClass(context);
       return typesenseClass.actionDropCollections(payload.schema);
@@ -45031,7 +45037,28 @@ class EmitterEventClass extends BaseService {
 class ScheduleEventClass extends BaseService {
   constructor(schedule, context) {
     super({ context });
+    this.time = this.env["TYPESENSE_CRONJOB_TIME"] || "*/30 * * * *";
     this.schedule = schedule;
+    this.schedule(this.time, async () => this.runCronJobIndexData());
+  }
+  async runCronJobIndexData() {
+    let { typesense_type_index } = await this.loadConfigs({
+      fields: ["typesense_type_index"]
+    });
+    if (typesense_type_index !== "run_cronjob" || this.env["TYPESENSE_CRONJOB_STATUS"] === "running")
+      return;
+    this.env["TYPESENSE_CRONJOB_STATUS"] = "running";
+    let schema = await this.database(COLLECTION_TYPESENSE_SCHEMA).select("collection").where("status", this.STATUS_PUBLISH).distinct("collection");
+    if (!schema.length)
+      return;
+    let collections = Array.from(new Set(schema.map((item) => item.collection)));
+    return this.emitter.emitFilter("TYPESENSE_INDEX_DATA_COLLECTION", { collections }).then(() => {
+      this.env["TYPESENSE_CRONJOB_STATUS"] = "pending";
+    }).catch((e) => {
+      this.logger.error({ name: EXTENSION_NAME }, e == null ? void 0 : e.message);
+      this.logger.debug(e);
+      this.env["TYPESENSE_CRONJOB_STATUS"] = "pending";
+    });
   }
 }
 
@@ -45044,6 +45071,9 @@ class ActionEventClass extends BaseService {
     this.action("items.create", async (meta) => this.triggerIndexItems(meta));
     this.action("items.update", async (meta) => this.triggerIndexItems(meta));
     this.action("items.delete", async (meta) => this.triggerIndexItems(meta));
+    this.action("users.create", async (meta) => this.triggerIndexItems(meta));
+    this.action("users.update", async (meta) => this.triggerIndexItems(meta));
+    this.action("users.delete", async (meta) => this.triggerIndexItems(meta));
   }
   async actionCreateItem(meta) {
     let { payload } = meta;
@@ -45063,10 +45093,15 @@ class ActionEventClass extends BaseService {
   }
   async triggerIndexItems(meta) {
     let { collection } = meta;
+    let { typesense_type_index } = await this.loadConfigs({
+      fields: ["typesense_type_index"]
+    });
+    if (typesense_type_index !== "trigger_event")
+      return;
     let schema = await this.database(COLLECTION_TYPESENSE_SCHEMA).select("collection").where("status", this.STATUS_PUBLISH).where("collection", collection);
     if (!schema.length)
       return;
-    let collections = Array.from(new Set(schema.map((item) => item.collections)));
+    let collections = Array.from(new Set(schema.map((item) => item.collection)));
     return this.emitter.emitAction("TYPESENSE_INDEX_DATA_COLLECTION", { collections });
   }
 }
@@ -45616,6 +45651,62 @@ const collections = [
           "validation": null,
           "validation_message": null
         }
+      },
+      {
+        "collection": COLLECTION_CONFIG,
+        "field": "typesense_type_index",
+        "type": "string",
+        "schema": {
+          "name": "typesense_type_index",
+          "table": COLLECTION_CONFIG,
+          "schema": "public",
+          "data_type": "character varying",
+          "is_nullable": true,
+          "generation_expression": null,
+          "default_value": "trigger_event",
+          "is_generated": false,
+          "max_length": 255,
+          "comment": null,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "is_unique": false,
+          "is_primary_key": false,
+          "has_auto_increment": false,
+          "foreign_key_schema": null,
+          "foreign_key_table": null,
+          "foreign_key_column": null
+        },
+        "meta": {
+          "collection": COLLECTION_CONFIG,
+          "field": "typesense_type_index",
+          "special": null,
+          "interface": "select-radio",
+          "options": {
+            "choices": [
+              {
+                "text": "Trigger Event",
+                "value": "trigger_event"
+              },
+              {
+                "text": "Run Cronjob",
+                "value": "run_cronjob"
+              }
+            ]
+          },
+          "display": null,
+          "display_options": null,
+          "readonly": false,
+          "hidden": false,
+          "sort": 2,
+          "width": "full",
+          "translations": null,
+          "note": null,
+          "conditions": null,
+          "required": false,
+          "group": "typesense_configs",
+          "validation": null,
+          "validation_message": null
+        }
       }
     ]
   },
@@ -45638,7 +45729,7 @@ const collections = [
       "color": null,
       "item_duplication_fields": null,
       "sort": 1,
-      "group": "search_engine_configs",
+      "group": COLLECTION_CONFIG,
       "collapse": "open",
       "preview_url": null,
       "versioning": false
@@ -46326,7 +46417,7 @@ const collections = [
           "is_primary_key": false,
           "has_auto_increment": false,
           "foreign_key_schema": "public",
-          "foreign_key_table": "search_engine_configs",
+          "foreign_key_table": COLLECTION_CONFIG,
           "foreign_key_column": "id"
         },
         "meta": {

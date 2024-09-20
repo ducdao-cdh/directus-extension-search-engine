@@ -219,6 +219,7 @@ export class TypesenseClass extends BaseService {
                 await schemaService.updateOne(id, {
                     data_indexed: dataParse
                 }, {
+                    autoPurgeCache: true,
                     emitEvents: false
                 })
 
@@ -236,8 +237,9 @@ export class TypesenseClass extends BaseService {
                 this.log.error(`Error index schema "${item.schema_name}"`)
                 this.log.debug(error)
                 await schemaService.updateOne(item.id, {
-                    data_indexed: error?.message
+                    data_indexed: error?.message,
                 }, {
+                    autoPurgeCache: true,
                     emitEvents: false
                 })
             }

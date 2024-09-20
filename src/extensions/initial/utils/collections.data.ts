@@ -391,7 +391,63 @@ export const collections = [
                     "validation": null,
                     "validation_message": null
                 }
-            }
+            },
+            {
+                "collection": COLLECTION_CONFIG,
+                "field": "typesense_type_index",
+                "type": "string",
+                "schema": {
+                    "name": "typesense_type_index",
+                    "table": COLLECTION_CONFIG,
+                    "schema": "public",
+                    "data_type": "character varying",
+                    "is_nullable": true,
+                    "generation_expression": null,
+                    "default_value": "trigger_event",
+                    "is_generated": false,
+                    "max_length": 255,
+                    "comment": null,
+                    "numeric_precision": null,
+                    "numeric_scale": null,
+                    "is_unique": false,
+                    "is_primary_key": false,
+                    "has_auto_increment": false,
+                    "foreign_key_schema": null,
+                    "foreign_key_table": null,
+                    "foreign_key_column": null
+                },
+                "meta": {
+                    "collection": COLLECTION_CONFIG,
+                    "field": "typesense_type_index",
+                    "special": null,
+                    "interface": "select-radio",
+                    "options": {
+                        "choices": [
+                            {
+                                "text": "Trigger Event",
+                                "value": "trigger_event"
+                            },
+                            {
+                                "text": "Run Cronjob",
+                                "value": "run_cronjob"
+                            }
+                        ]
+                    },
+                    "display": null,
+                    "display_options": null,
+                    "readonly": false,
+                    "hidden": false,
+                    "sort": 2,
+                    "width": "full",
+                    "translations": null,
+                    "note": null,
+                    "conditions": null,
+                    "required": false,
+                    "group": "typesense_configs",
+                    "validation": null,
+                    "validation_message": null
+                }
+            },
         ]
     },
     {
@@ -413,7 +469,7 @@ export const collections = [
             "color": null,
             "item_duplication_fields": null,
             "sort": 1,
-            "group": "search_engine_configs",
+            "group": COLLECTION_CONFIG,
             "collapse": "open",
             "preview_url": null,
             "versioning": false
@@ -1113,7 +1169,7 @@ export const collections = [
                     "is_primary_key": false,
                     "has_auto_increment": false,
                     "foreign_key_schema": "public",
-                    "foreign_key_table": "search_engine_configs",
+                    "foreign_key_table": COLLECTION_CONFIG,
                     "foreign_key_column": "id"
                 },
                 "meta": {

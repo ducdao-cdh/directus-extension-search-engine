@@ -21,6 +21,11 @@ export class EmitterEventClass extends BaseService {
             return typesenseClass.actionIndexDataCollection(payload.collections)
         })
 
+        this.emitter.onFilter("TYPESENSE_INDEX_DATA_COLLECTION", async (payload: { collections: Array<string> }) => {
+            let typesenseClass = new TypesenseClass(context)
+            return typesenseClass.actionIndexDataCollection(payload.collections)
+        })
+
         this.emitter.onAction("TYPESENSE_CLEAR_SCHEMA", async (payload: { schema: Array<string> }) => {
             let typesenseClass = new TypesenseClass(context)
             return typesenseClass.actionDropCollections(payload.schema)

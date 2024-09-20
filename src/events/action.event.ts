@@ -15,6 +15,11 @@ export class ActionEventClass extends BaseService {
         this.action('items.create', async (meta: any) => this.triggerIndexItems(meta))
         this.action('items.update', async (meta: any) => this.triggerIndexItems(meta))
         this.action('items.delete', async (meta: any) => this.triggerIndexItems(meta))
+
+        this.action('users.create', async (meta: any) => this.triggerIndexItems(meta))
+        this.action('users.update', async (meta: any) => this.triggerIndexItems(meta))
+        this.action('users.delete', async (meta: any) => this.triggerIndexItems(meta))
+
     }
 
 
@@ -43,6 +48,15 @@ export class ActionEventClass extends BaseService {
 
     async triggerIndexItems(meta: any) {
         let { collection } = meta
+        // this.logger.debug({
+        //     collection
+        // })
+
+        let { typesense_type_index } = await this.loadConfigs({
+            fields: ['typesense_type_index']
+        })
+
+        if (typesense_type_index !== "trigger_event") return
 
         let schema = await this.database(COLLECTION_TYPESENSE_SCHEMA)
             .select('collection')
@@ -51,7 +65,9 @@ export class ActionEventClass extends BaseService {
 
         if (!schema.length) return
 
-        let collections = Array.from(new Set(schema.map((item: any) => item.collections)))
+        //this.logger.debug({ collection, schema })
+
+        let collections = Array.from(new Set(schema.map((item: any) => item.collection)))
 
         return this.emitter.emitAction('TYPESENSE_INDEX_DATA_COLLECTION', { collections })
     }
