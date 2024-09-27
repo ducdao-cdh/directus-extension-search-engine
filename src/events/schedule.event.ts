@@ -42,7 +42,7 @@ export class ScheduleEventClass extends BaseService {
 
         let collections = Array.from(new Set(schema.map((item: any) => item.collection)))
 
-        return this.emitter.emitFilter('TYPESENSE_INDEX_DATA_COLLECTION', { collections }).then(() => {
+        return this.emitter.emitFilter('TYPESENSE_INDEX_DATA_COLLECTION', { collections, mode: "run_cronjob" }).then(() => {
 
             this.env['TYPESENSE_CRONJOB_STATUS'] = 'pending'
 

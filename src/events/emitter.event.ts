@@ -16,14 +16,14 @@ export class EmitterEventClass extends BaseService {
             return typesenseClass.actionIndexDataSchema(payload.schema)
         })
 
-        this.emitter.onAction("TYPESENSE_INDEX_DATA_COLLECTION", async (payload: { collections: Array<string> }) => {
+        this.emitter.onAction("TYPESENSE_INDEX_DATA_COLLECTION", async (payload: { collections: Array<string>, mode?: "trigger_event" | "run_cronjob" }) => {
             let typesenseClass = new TypesenseClass(context)
-            return typesenseClass.actionIndexDataCollection(payload.collections)
+            return typesenseClass.actionIndexDataCollection(payload.collections, payload.mode)
         })
 
-        this.emitter.onFilter("TYPESENSE_INDEX_DATA_COLLECTION", async (payload: { collections: Array<string> }) => {
+        this.emitter.onFilter("TYPESENSE_INDEX_DATA_COLLECTION", async (payload: { collections: Array<string>, mode?: "trigger_event" | "run_cronjob" }) => {
             let typesenseClass = new TypesenseClass(context)
-            return typesenseClass.actionIndexDataCollection(payload.collections)
+            return typesenseClass.actionIndexDataCollection(payload.collections, payload.mode)
         })
 
         this.emitter.onAction("TYPESENSE_CLEAR_SCHEMA", async (payload: { schema: Array<string> }) => {

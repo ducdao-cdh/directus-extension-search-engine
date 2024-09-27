@@ -367,13 +367,7 @@ export const collections = [
                     "interface": "list-o2m",
                     "options": {
                         "layout": "table",
-                        "fields": [
-                            "id",
-                            "status",
-                            "collection",
-                            "schema_name",
-                            "query"
-                        ]
+                        "fields": ["status", "mode", "collection", "query", "schema_name"]
                     },
                     "display": "related-values",
                     "display_options": {
@@ -1180,8 +1174,25 @@ export const collections = [
                             }
                         ]
                     },
-                    "display": null,
-                    "display_options": null,
+                    display: "labels",
+                    display_options: {
+                        "choices": [
+                            {
+                                "text": "Trigger Event",
+                                "value": "trigger_event",
+                                "color": "#FFFFFF",
+                                "background": "#3399FF",
+                                "icon": "electric_bolt"
+                            },
+                            {
+                                "text": "Run Cronjob",
+                                "value": "run_cronjob",
+                                "color": "#FFFFFF",
+                                "background": "#2ECDA7",
+                                "icon": "avg_time"
+                            }
+                        ]
+                    },
                     "readonly": false,
                     "hidden": false,
                     "sort": 9,

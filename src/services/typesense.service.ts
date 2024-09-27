@@ -36,11 +36,11 @@ export class TypesenseClass extends BaseService {
 
     }
 
-    async getSchemaIndex() {
+    async getSchemaIndex(mode?: "trigger_event" | "run_cronjob") {
         let schema = await this.getSchema()
         let service = new this.services.ItemsService(COLLECTION_TYPESENSE_SCHEMA, { schema })
 
-        return service.readByQuery({
+        let query: any = {
             filter: {
                 status: {
                     _eq: "published"
@@ -49,16 +49,24 @@ export class TypesenseClass extends BaseService {
             fields: ['*'],
             sort: ["sort", "id"],
             limit: -1
-        })
+        }
+
+        if (mode) {
+            query.filter["mode"] = {
+                _eq: mode
+            }
+        }
+
+        return service.readByQuery(query)
     }
 
 
-    async initCollectionSchema(payload: { schemas?: string[], collections?: string[] } | any) {
+    async initCollectionSchema(payload: { schemas?: string[], collections?: string[], mode?: "trigger_event" | "run_cronjob" } | any) {
         try {
 
             let [collections, dataIndex] = await Promise.all([
                 this.client.collections().retrieve(),
-                this.getSchemaIndex()
+                this.getSchemaIndex(payload.mode)
             ])
 
             if (payload.schemas) {
@@ -96,10 +104,10 @@ export class TypesenseClass extends BaseService {
     }
 
 
-    async actionRefreshIndexData() {
+    async actionRefreshIndexData(mode?: "trigger_event" | "run_cronjob") {
         try {
 
-            let dataIndex = await this.getSchemaIndex()
+            let dataIndex = await this.getSchemaIndex(mode)
 
             let schemas = dataIndex.map((item: any) => item.schema_name)
 
@@ -109,7 +117,7 @@ export class TypesenseClass extends BaseService {
             let collections: any = Array.from(new Set(dataIndex.map((item: any) => item.collection)))
 
             await this.actionDropCollections(schemas)
-            await this.actionIndexDataCollection(collections)
+            await this.actionIndexDataCollection(collections, mode)
 
 
         } catch (error) {
@@ -136,15 +144,15 @@ export class TypesenseClass extends BaseService {
         }
     }
 
-    async actionIndexDataCollection(collections?: string[]) {
+    async actionIndexDataCollection(collections?: string[], mode?: "trigger_event" | "run_cronjob") {
         try {
-            let dataIndex = await this.getSchemaIndex()
+            let dataIndex = await this.getSchemaIndex(mode)
 
             if (collections) {
                 dataIndex = dataIndex.filter((item: any) => collections?.includes(item.collection))
             }
 
-            await this.initCollectionSchema({ collections })
+            await this.initCollectionSchema({ collections, mode })
 
             // console.log({
             //     collections,

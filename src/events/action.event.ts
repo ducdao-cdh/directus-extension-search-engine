@@ -72,7 +72,7 @@ export class ActionEventClass extends BaseService {
 
         let collections = Array.from(new Set(schema.map((item: any) => item.collection)))
 
-        return this.emitter.emitAction('TYPESENSE_INDEX_DATA_COLLECTION', { collections })
+        return this.emitter.emitAction('TYPESENSE_INDEX_DATA_COLLECTION', { collections, mode: "trigger_event" })
     }
 
 }

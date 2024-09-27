@@ -14,6 +14,7 @@ typesense:
 
 ``` bash
 TYPESENSE_API_KEY="112233"
+TYPESENSE_CRONJOB_TIME="*/15 * * * *"   #env default directus service
 ```
 
 ## II. Configs
@@ -38,9 +39,12 @@ This field specifies the URLs of the `typesense` service. These services must al
 ### 4. Field `Typesense Indexing`
 The processing flow here will be: get data in the query configured in `query` and `collection`, then process the data with Javascript in `Function Parse` so that the output matches the schema configured in `Schema`
 #### 4.1. Query data
-<img src="docs/query.png" width="500" height="500" />
+<img src="docs/query.png" width="500" height="700" />
 
 In this step, we will get data with `directus` `sdk` query (collection & query). The returned response will be the input (`data`) of the `Function Parse` field to run the script.
+
++ Mode ```Trigger Event``` : trigger hook action with the schema configured
++ Mode ```Run Cronjob``` : schemas of this type will automatically index with the time configured with env ```TYPESENSE_CRONJOB_TIME```
 
 > **See more:** https://docs.directus.io/reference/items.html
 

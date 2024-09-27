@@ -44811,10 +44811,10 @@ class TypesenseClass extends BaseService {
     });
     this.dataIndex = this.env.TYPESENSE_INDEXING;
   }
-  async getSchemaIndex() {
+  async getSchemaIndex(mode) {
     let schema = await this.getSchema();
     let service = new this.services.ItemsService(COLLECTION_TYPESENSE_SCHEMA, { schema });
-    return service.readByQuery({
+    let query = {
       filter: {
         status: {
           _eq: "published"
@@ -44823,13 +44823,19 @@ class TypesenseClass extends BaseService {
       fields: ["*"],
       sort: ["sort", "id"],
       limit: -1
-    });
+    };
+    if (mode) {
+      query.filter["mode"] = {
+        _eq: mode
+      };
+    }
+    return service.readByQuery(query);
   }
   async initCollectionSchema(payload) {
     try {
       let [collections, dataIndex] = await Promise.all([
         this.client.collections().retrieve(),
-        this.getSchemaIndex()
+        this.getSchemaIndex(payload.mode)
       ]);
       if (payload.schemas) {
         dataIndex = dataIndex.filter((item) => payload.schemas.includes(item.schema_name));
@@ -44856,15 +44862,15 @@ class TypesenseClass extends BaseService {
       this.log.debug(error);
     }
   }
-  async actionRefreshIndexData() {
+  async actionRefreshIndexData(mode) {
     try {
-      let dataIndex = await this.getSchemaIndex();
+      let dataIndex = await this.getSchemaIndex(mode);
       let schemas = dataIndex.map((item) => item.schema_name);
       if (!(schemas == null ? void 0 : schemas.length))
         return;
       let collections = Array.from(new Set(dataIndex.map((item) => item.collection)));
       await this.actionDropCollections(schemas);
-      await this.actionIndexDataCollection(collections);
+      await this.actionIndexDataCollection(collections, mode);
     } catch (error) {
       this.log.debug("[-] Error actionIndexAllData");
       this.log.debug(error);
@@ -44883,13 +44889,13 @@ class TypesenseClass extends BaseService {
       this.log.debug(error);
     }
   }
-  async actionIndexDataCollection(collections) {
+  async actionIndexDataCollection(collections, mode) {
     try {
-      let dataIndex = await this.getSchemaIndex();
+      let dataIndex = await this.getSchemaIndex(mode);
       if (collections) {
         dataIndex = dataIndex.filter((item) => collections == null ? void 0 : collections.includes(item.collection));
       }
-      await this.initCollectionSchema({ collections });
+      await this.initCollectionSchema({ collections, mode });
       return this.actionIndexing(dataIndex);
     } catch (error) {
       this.log.error("[!] Error actionIndexData");
@@ -45005,11 +45011,11 @@ class EmitterEventClass extends BaseService {
     });
     this.emitter.onAction("TYPESENSE_INDEX_DATA_COLLECTION", async (payload) => {
       let typesenseClass = new TypesenseClass(context);
-      return typesenseClass.actionIndexDataCollection(payload.collections);
+      return typesenseClass.actionIndexDataCollection(payload.collections, payload.mode);
     });
     this.emitter.onFilter("TYPESENSE_INDEX_DATA_COLLECTION", async (payload) => {
       let typesenseClass = new TypesenseClass(context);
-      return typesenseClass.actionIndexDataCollection(payload.collections);
+      return typesenseClass.actionIndexDataCollection(payload.collections, payload.mode);
     });
     this.emitter.onAction("TYPESENSE_CLEAR_SCHEMA", async (payload) => {
       let typesenseClass = new TypesenseClass(context);
@@ -45055,7 +45061,7 @@ class ScheduleEventClass extends BaseService {
     if (!schema.length)
       return;
     let collections = Array.from(new Set(schema.map((item) => item.collection)));
-    return this.emitter.emitFilter("TYPESENSE_INDEX_DATA_COLLECTION", { collections }).then(() => {
+    return this.emitter.emitFilter("TYPESENSE_INDEX_DATA_COLLECTION", { collections, mode: "run_cronjob" }).then(() => {
       this.env["TYPESENSE_CRONJOB_STATUS"] = "pending";
     }).catch((e) => {
       this.logger.error({ name: EXTENSION_NAME }, e == null ? void 0 : e.message);
@@ -45106,7 +45112,7 @@ class ActionEventClass extends BaseService {
     if (!schema.length)
       return;
     let collections = Array.from(new Set(schema.map((item) => item.collection)));
-    return this.emitter.emitAction("TYPESENSE_INDEX_DATA_COLLECTION", { collections });
+    return this.emitter.emitAction("TYPESENSE_INDEX_DATA_COLLECTION", { collections, mode: "trigger_event" });
   }
 }
 
@@ -45631,13 +45637,7 @@ const collections = [
           "interface": "list-o2m",
           "options": {
             "layout": "table",
-            "fields": [
-              "id",
-              "status",
-              "collection",
-              "schema_name",
-              "query"
-            ]
+            "fields": ["status", "mode", "collection", "query", "schema_name"]
           },
           "display": "related-values",
           "display_options": {
@@ -46432,8 +46432,25 @@ const collections = [
               }
             ]
           },
-          "display": null,
-          "display_options": null,
+          display: "labels",
+          display_options: {
+            "choices": [
+              {
+                "text": "Trigger Event",
+                "value": "trigger_event",
+                "color": "#FFFFFF",
+                "background": "#3399FF",
+                "icon": "electric_bolt"
+              },
+              {
+                "text": "Run Cronjob",
+                "value": "run_cronjob",
+                "color": "#FFFFFF",
+                "background": "#2ECDA7",
+                "icon": "avg_time"
+              }
+            ]
+          },
           "readonly": false,
           "hidden": false,
           "sort": 9,
