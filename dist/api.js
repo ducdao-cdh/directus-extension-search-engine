@@ -45037,18 +45037,21 @@ class EmitterEventClass extends BaseService {
 class ScheduleEventClass extends BaseService {
   constructor(schedule, context) {
     super({ context });
-    this.time = this.env["TYPESENSE_CRONJOB_TIME"] || "*/30 * * * *";
+    this.time = this.env["TYPESENSE_CRONJOB_TIME"] || "*/15 * * * *";
     this.schedule = schedule;
     this.schedule(this.time, async () => this.runCronJobIndexData());
   }
   async runCronJobIndexData() {
-    let { typesense_type_index } = await this.loadConfigs({
-      fields: ["typesense_type_index"]
-    });
-    if (typesense_type_index !== "run_cronjob" || this.env["TYPESENSE_CRONJOB_STATUS"] === "running")
+    if (this.env["TYPESENSE_CRONJOB_STATUS"] === "running")
       return;
     this.env["TYPESENSE_CRONJOB_STATUS"] = "running";
-    let schema = await this.database(COLLECTION_TYPESENSE_SCHEMA).select("collection").where("status", this.STATUS_PUBLISH).distinct("collection");
+    let { engine_types } = await this.loadConfigs({
+      fields: ["engine_types"]
+    });
+    engine_types = JSON.parse(JSON.stringify(engine_types));
+    if (!engine_types.includes("typesense"))
+      return;
+    let schema = await this.database(COLLECTION_TYPESENSE_SCHEMA).select("collection").where("status", this.STATUS_PUBLISH).where("mode", "run_cronjob").distinct("collection");
     if (!schema.length)
       return;
     let collections = Array.from(new Set(schema.map((item) => item.collection)));
@@ -45093,12 +45096,13 @@ class ActionEventClass extends BaseService {
   }
   async triggerIndexItems(meta) {
     let { collection } = meta;
-    let { typesense_type_index } = await this.loadConfigs({
-      fields: ["typesense_type_index"]
+    let { engine_types } = await this.loadConfigs({
+      fields: ["engine_types"]
     });
-    if (typesense_type_index !== "trigger_event")
+    engine_types = JSON.parse(JSON.stringify(engine_types));
+    if (!engine_types.includes("typesense"))
       return;
-    let schema = await this.database(COLLECTION_TYPESENSE_SCHEMA).select("collection").where("status", this.STATUS_PUBLISH).where("collection", collection);
+    let schema = await this.database(COLLECTION_TYPESENSE_SCHEMA).select("collection").where("status", this.STATUS_PUBLISH).where("mode", "trigger_event").where("collection", collection);
     if (!schema.length)
       return;
     let collections = Array.from(new Set(schema.map((item) => item.collection)));
@@ -45642,62 +45646,6 @@ const collections = [
           "readonly": false,
           "hidden": false,
           "sort": 4,
-          "width": "full",
-          "translations": null,
-          "note": null,
-          "conditions": null,
-          "required": false,
-          "group": "typesense_configs",
-          "validation": null,
-          "validation_message": null
-        }
-      },
-      {
-        "collection": COLLECTION_CONFIG,
-        "field": "typesense_type_index",
-        "type": "string",
-        "schema": {
-          "name": "typesense_type_index",
-          "table": COLLECTION_CONFIG,
-          "schema": "public",
-          "data_type": "character varying",
-          "is_nullable": true,
-          "generation_expression": null,
-          "default_value": "trigger_event",
-          "is_generated": false,
-          "max_length": 255,
-          "comment": null,
-          "numeric_precision": null,
-          "numeric_scale": null,
-          "is_unique": false,
-          "is_primary_key": false,
-          "has_auto_increment": false,
-          "foreign_key_schema": null,
-          "foreign_key_table": null,
-          "foreign_key_column": null
-        },
-        "meta": {
-          "collection": COLLECTION_CONFIG,
-          "field": "typesense_type_index",
-          "special": null,
-          "interface": "select-radio",
-          "options": {
-            "choices": [
-              {
-                "text": "Trigger Event",
-                "value": "trigger_event"
-              },
-              {
-                "text": "Run Cronjob",
-                "value": "run_cronjob"
-              }
-            ]
-          },
-          "display": null,
-          "display_options": null,
-          "readonly": false,
-          "hidden": false,
-          "sort": 2,
           "width": "full",
           "translations": null,
           "note": null,
@@ -46433,6 +46381,62 @@ const collections = [
           "readonly": false,
           "hidden": true,
           "sort": 13,
+          "width": "full",
+          "translations": null,
+          "note": null,
+          "conditions": null,
+          "required": false,
+          "group": null,
+          "validation": null,
+          "validation_message": null
+        }
+      },
+      {
+        "collection": COLLECTION_TYPESENSE_SCHEMA,
+        "field": "mode",
+        "type": "string",
+        "schema": {
+          "name": "mode",
+          "table": COLLECTION_TYPESENSE_SCHEMA,
+          "schema": "public",
+          "data_type": "character varying",
+          "is_nullable": true,
+          "generation_expression": null,
+          "default_value": "trigger_event",
+          "is_generated": false,
+          "max_length": 255,
+          "comment": null,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "is_unique": false,
+          "is_primary_key": false,
+          "has_auto_increment": false,
+          "foreign_key_schema": null,
+          "foreign_key_table": null,
+          "foreign_key_column": null
+        },
+        "meta": {
+          "collection": COLLECTION_TYPESENSE_SCHEMA,
+          "field": "mode",
+          "special": null,
+          "interface": "select-radio",
+          "options": {
+            "choices": [
+              {
+                "text": "Trigger Event",
+                "value": "trigger_event"
+              },
+              {
+                "text": "Run Cronjob",
+                "value": "run_cronjob"
+              }
+            ]
+          },
+          "display": null,
+          "display_options": null,
+          "readonly": false,
+          "hidden": false,
+          "sort": 9,
           "width": "full",
           "translations": null,
           "note": null,

@@ -52,15 +52,18 @@ export class ActionEventClass extends BaseService {
         //     collection
         // })
 
-        let { typesense_type_index } = await this.loadConfigs({
-            fields: ['typesense_type_index']
+        let { engine_types } = await this.loadConfigs({
+            fields: ['engine_types']
         })
 
-        if (typesense_type_index !== "trigger_event") return
+        engine_types = JSON.parse(JSON.stringify(engine_types))
+
+        if (!engine_types.includes('typesense')) return
 
         let schema = await this.database(COLLECTION_TYPESENSE_SCHEMA)
             .select('collection')
             .where('status', this.STATUS_PUBLISH)
+            .where('mode', 'trigger_event')
             .where('collection', collection)
 
         if (!schema.length) return

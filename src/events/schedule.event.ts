@@ -5,7 +5,7 @@ import { TypeContextConstructor } from "../types/base.type"
 export class ScheduleEventClass extends BaseService {
     public action: any
 
-    public time = this.env['TYPESENSE_CRONJOB_TIME'] || "*/30 * * * *"
+    public time = this.env['TYPESENSE_CRONJOB_TIME'] || "*/15 * * * *"
 
     constructor(schedule: any, context: TypeContextConstructor) {
         super({ context })
@@ -16,18 +16,24 @@ export class ScheduleEventClass extends BaseService {
 
 
     async runCronJobIndexData() {
-        let { typesense_type_index } = await this.loadConfigs({
-            fields: ['typesense_type_index']
-        })
 
-
-        if (typesense_type_index !== "run_cronjob" || this.env['TYPESENSE_CRONJOB_STATUS'] === 'running') return
+        if (this.env['TYPESENSE_CRONJOB_STATUS'] === 'running') return
 
         this.env['TYPESENSE_CRONJOB_STATUS'] = 'running'
+
+
+        let { engine_types } = await this.loadConfigs({
+            fields: ['engine_types']
+        })
+
+        engine_types = JSON.parse(JSON.stringify(engine_types))
+
+        if (!engine_types.includes('typesense')) return
 
         let schema = await this.database(COLLECTION_TYPESENSE_SCHEMA)
             .select('collection')
             .where('status', this.STATUS_PUBLISH)
+            .where('mode', 'run_cronjob')
             .distinct("collection")
 
         if (!schema.length) return
