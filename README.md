@@ -30,30 +30,42 @@ npm i directus-extension-search-engine
 Allows to configure the type of search engine to be used
 > **Note:** currently I only support `typesense`, in the future I will support `elasticsearch`
 
-### 2. Field `Typesense API Key`
-This field is configured in env. Any change to the value in this field will be invalid.
 
-### 3. Field `Typesense Urls`
+### 2. Field `Typesense Urls`
 This field specifies the URLs of the `typesense` service. These services must all share the same API key configured in env
 
-### 4. Field `Typesense Indexing`
+### 3. Field `Typesense Schema`
 The processing flow here will be: get data in the query configured in `query` and `collection`, then process the data with Javascript in `Function Parse` so that the output matches the schema configured in `Schema`
-#### 4.1. Query data
+
+#### 3.1. Status
 <img src="docs/query.png" width="500" height="700" />
 
-In this step, we will get data with `directus` `sdk` query (collection & query). The returned response will be the input (`data`) of the `Function Parse` field to run the script.
+Trigger event update:
++ ```published``` : init typesense schema + index data
++ ```draft``` or ```archived``` : drop schema + delete data index
+
+#### 3.2. Mode
 
 + Mode ```Trigger Event``` : trigger hook action with the schema configured
-+ Mode ```Run Cronjob``` : schemas of this type will automatically index with the time configured with env ```TYPESENSE_CRONJOB_TIME```
++ Mode ```Run Cronjob``` : schema of this type will automatically index with the time configured with env ```TYPESENSE_CRONJOB_TIME```
+
+
+#### 3.3. Collection
+Currently, I only support queries with regular collections and **1 system collection** called ```directus_users```
+
+
+#### 3.4. Query
+In this step, we will get data with `directus` `sdk` query (collection & query). The returned response will be the input (`data`) of the `Function Parse` field to run the script.
+
 
 > **See more:** https://docs.directus.io/reference/items.html
 
-#### 4.2 Parse data & index schema 
+#### 3.5 Parse data, index schema , data indexed 
 <img src="docs/indexing.png" width="500" height="800" />
 <img src="docs/data_indexed.png" width="500" height="800" />
 
 
-The above data will be put into `Function Parse` with the variable `data` and processed. The data needs to be processed to match the schema configured in the `schema` field.
+The above data will be put into `Function Parse` with the variable `data` and processed. The data needs to be processed to match the schema configured in the `schema` field. Indexed data will be saved to ```data_indexed``` for easy review.
 
 > **Config schema:** https://typesense.org/docs/0.25.2/api/collections.html#create-a-collection
 ## III. Router search
