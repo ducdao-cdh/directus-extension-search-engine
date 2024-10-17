@@ -45525,7 +45525,7 @@ const collections = [
           "data_type": "json",
           "is_nullable": true,
           "generation_expression": null,
-          "default_value": null,
+          "default_value": [],
           "is_generated": false,
           "max_length": null,
           "comment": null,
