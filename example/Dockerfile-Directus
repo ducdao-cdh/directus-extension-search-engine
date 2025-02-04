@@ -1,0 +1,13 @@
+# v11.4.0 runs on node 22, which is incompatible with isolated-vm in directus-extension-search-engine
+FROM directus/directus:11.3.5
+
+USER root
+
+RUN corepack enable
+
+# Install python to compile directus-extension-search-engine
+RUN apk add python3 make g++
+
+USER node
+
+RUN pnpm install directus-extension-search-engine

@@ -1,0 +1,68 @@
+services:
+
+  directus:
+    build:
+      dockerfile: Dockerfile-Directus
+    container_name: directus
+    ports:
+      - '8055:8055'
+    depends_on:
+      directus-postgres:
+        condition: service_healthy
+      typesense:
+        condition: service_healthy
+    environment:
+      LOG_LEVEL: 'trace'
+      TELEMETRY: 'false'
+      KEY: 'none'
+      SECRET: 'none'
+      DB_CLIENT: 'pg'
+      DB_HOST: 'directus-postgres'
+      DB_PORT: '5432'
+      DB_DATABASE: 'directus'
+      DB_USER: 'directus'
+      DB_PASSWORD: 'directus'
+      CACHE_ENABLED: 'false'
+      ADMIN_EMAIL: 'admin@example.com'
+      ADMIN_PASSWORD: 'admin'
+      PUBLIC_URL: 'http://localhost:8055'
+      MAX_PAYLOAD_SIZE: '10mb'
+      TYPESENSE_API_KEY: 'random-api-key'
+    healthcheck:
+      test: wget --no-verbose --tries=1 --spider http://directus:8055/server/health || exit 1
+      start_period: 15s
+      interval: 5s
+      timeout: 5s
+      retries: 25
+
+  directus-postgres:
+    image: postgres
+    container_name: directus-postgres
+    ports:
+      - '5432:5432' # mapped to be accessible via ide
+    environment:
+      POSTGRES_USER: directus
+      POSTGRES_PASSWORD: directus
+      POSTGRES_DB: directus
+    healthcheck:
+      test: pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  typesense:
+    image: typesense/typesense:27.0
+    container_name: typesense
+    restart: on-failure
+    ports:
+      - "8108:8108"
+    environment:
+      TYPESENSE_API_KEY: random-api-key
+      TYPESENSE_DATA_DIR: /tmp
+      TYPESENSE_ENABLE_CORS: "true"
+    healthcheck:
+      test: ["CMD-SHELL", "apt install curl -y &>/dev/null || curl --silent --fail localhost:8108/health || exit 1"]
+      start_period: 15s
+      interval: 30s
+      timeout: 5s
+      retries: 15

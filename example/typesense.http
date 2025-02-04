@@ -1,0 +1,9 @@
+### Get all collections
+GET http://localhost:8108/collections
+X-TYPESENSE-API-KEY: random-api-key
+Content-Type: application/json
+
+### Search all users
+GET http://localhost:8108/collections/users/documents/search?q=*
+X-TYPESENSE-API-KEY: random-api-key
+Content-Type: application/json
